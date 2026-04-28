@@ -1,0 +1,23 @@
+# Obsidian temporary files
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.trash/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large binary files — PDFs are stored in Zotero or cloud storage
+# Only the extracted .md versions are tracked in Git
+raw/papers/*.pdf
+raw/web/*.pdf
+
+# Obsidian plugin cache (the plugin configs ARE tracked)
+.obsidian/plugins/*/data.json
+
+# Research chapters — excluded until you're ready to commit them.
+# These are YOUR premature thinking and drafts. When a chapter reaches
+# a milestone you're comfortable with, remove the line below and commit.
+# Until then, research/ stays local-only — back it up manually or via
+# cloud sync (iCloud, Dropbox, etc.) for safety.
+research/
