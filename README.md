@@ -40,8 +40,20 @@ The ingest agent includes a fidelity retry loop: after generating a summary, it 
 
 ## Setup
 
+Install with your provider of choice:
+
 ```
-pip install -e .
+pip install -e ".[anthropic]"   # default
+pip install -e ".[openai]"
+pip install -e ".[google]"
+pip install -e ".[mistral]"
 ```
 
-Requires `ANTHROPIC_API_KEY` in environment.
+Set your provider and API key via environment variables:
+
+```
+export KB_PROVIDER=anthropic          # or openai, google, mistral
+export KB_MODEL=claude-sonnet-4-20250514
+export KB_MODEL_STRONG=claude-opus-4-20250514
+export ANTHROPIC_API_KEY=...
+```

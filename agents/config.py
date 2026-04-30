@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     vault_root: Path = Path(__file__).parent.parent
+    provider: str = "anthropic"
     model: str = "claude-sonnet-4-20250514"
     model_strong: str = "claude-opus-4-20250514"
     temperature: float = 0.0
