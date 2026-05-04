@@ -1,23 +1,28 @@
 # phd-kb
 
-Personal PhD knowledge base for species distribution modelling literature. LLM-maintained wiki built as an Obsidian vault, with an automated multi-agent system for ingestion and maintenance.
+LLM-maintained research knowledge base built as an Obsidian vault. Drop PDFs into `raw/papers/`, and Claude Code turns them into a structured, interlinked wiki.
+
+## Getting Started
+
+1. Clone this repo
+2. Open the folder in Obsidian
+3. Install [Claude Code](https://claude.ai/code) and run it in the repo root
+4. Drop a PDF into `raw/papers/`
+5. Tell Claude Code: `ingest <filename>`
+
+Claude Code reads `CLAUDE.md` automatically and knows all the commands.
 
 ## Structure
 
-- `raw/` — Source materials (paper extracts, notes, catalog). Human-curated, never auto-edited.
-- `wiki/` — LLM-generated summaries, concept articles, cross-source syntheses, glossary. Never hand-edited.
-- `research/` — Dissertation chapters (local-only, not tracked in git until graduated).
-- `prompts/` — Prompt templates driving wiki generation and maintenance.
-- `outputs/` — Generated reports, eval results, slides, figures.
-- `agents/` — LangGraph multi-agent system that automates the workflows below.
+- `raw/` — Your source materials (papers, notes, web clips). Human-curated, never auto-edited.
+- `wiki/` — LLM-generated summaries, concept articles, syntheses, glossary. Never hand-edited.
+- `research/` — Your dissertation chapters (local-only until you choose to track them).
+- `prompts/` — Prompt templates that drive wiki generation.
+- `outputs/` — Generated reports, eval results, slides.
 
-## Usage
+## Commands
 
-Run via CLI:
-
-```
-kb <command> [args]
-```
+Run these in Claude Code:
 
 | Command | What it does |
 |---------|-------------|
@@ -30,30 +35,11 @@ kb <command> [args]
 | `lint` | Health check for broken links, orphans, missing concepts |
 | `query <question>` | Answer a question grounded in wiki content |
 | `status` | Dashboard of sources, articles, and wiki health |
-| `watch` | Watch `raw/papers/` and auto-ingest new PDFs |
 
-## Agents
+## Conventions
 
-Built with LangGraph, LangChain, and Pydantic. A supervisor routes commands to specialized sub-agents, each defined as a `StateGraph` with typed Pydantic state.
+- **Filenames**: `authorYEAR-keyword` for papers (e.g., `vaswani2017-attention.pdf`), lowercase-hyphenated for concepts
+- **Wikilinks**: `[[concept-name]]` — always lowercase-hyphenated, consistent across the wiki
+- **Frontmatter**: every wiki article has YAML frontmatter with `title`, `type`, `sources`, `created`, `updated`
 
-The ingest agent includes a fidelity retry loop: after generating a summary, it evaluates every claim against the source and fixes distortions before saving.
-
-## Setup
-
-Install with your provider of choice:
-
-```
-pip install -e ".[anthropic]"   # default
-pip install -e ".[openai]"
-pip install -e ".[google]"
-pip install -e ".[mistral]"
-```
-
-Set your provider and API key via environment variables:
-
-```
-export KB_PROVIDER=anthropic          # or openai, google, mistral
-export KB_MODEL=claude-sonnet-4-20250514
-export KB_MODEL_STRONG=claude-opus-4-20250514
-export ANTHROPIC_API_KEY=...
-```
+See `CLAUDE.md` for the full specification.
