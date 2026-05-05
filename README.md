@@ -9,7 +9,7 @@ The LLM follows instructions defined in `CLAUDE.md` — no custom code or plugin
 - **Obsidian** (free) — for browsing and navigating the wiki
 - **An LLM with filesystem access** — it needs to read your PDFs and write markdown files
 
-Tested with: **Claude Code**, **Cursor**, **GitHub Copilot** (IDE). These can read/write local files directly.
+Tested with: **Claude Code**, **OpenAI Codex**, **Cursor**, **GitHub Copilot** (IDE). These can read/write local files directly.
 
 > **Note:** Web-based tools (ChatGPT, Gemini web UI) cannot read local files or write to your vault. They won't work for this workflow.
 
@@ -31,6 +31,8 @@ Open Obsidian → **Open folder as vault** → select the `phd-kb` folder.
 ### 3. Connect your LLM
 
 **Claude Code (recommended)** — run `claude` in the repo root. It reads `CLAUDE.md` automatically.
+
+**OpenAI Codex** — run `codex` in the repo root. Point it to `CLAUDE.md` as its instructions file.
 
 **Cursor / Copilot** — open the repo in your IDE. Point the AI assistant to `CLAUDE.md` as its instructions file.
 
