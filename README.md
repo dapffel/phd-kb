@@ -1,5 +1,7 @@
 # phd-kb
 
+> **This is a template repository.** Click **"Use this template"** above to create your own copy — you'll get a clean, independent repo with no shared history.
+
 A structured Obsidian vault for managing PhD research literature. You add papers, tell your LLM to process them, and it builds an interlinked wiki of summaries, concepts, and cross-source syntheses.
 
 The LLM follows instructions defined in `CLAUDE.md` — no custom code or plugins required.
@@ -15,11 +17,13 @@ Tested with: **Claude Code**, **OpenAI Codex**, **Cursor**, **GitHub Copilot** (
 
 ## Setup
 
-### 1. Clone the repo
+### 1. Create your repo
+
+Click the green **"Use this template"** button at the top of this page → **"Create a new repository"**. Name it whatever you like (e.g., `my-phd-kb`), then clone it:
 
 ```bash
-git clone -b template https://github.com/dapffel/phd-kb.git
-cd phd-kb
+git clone https://github.com/<your-username>/<your-repo-name>.git
+cd <your-repo-name>
 ```
 
 ### 2. Install Obsidian
