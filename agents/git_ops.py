@@ -19,6 +19,10 @@ def commit(message: str):
     run_git("commit", "-m", message)
 
 
-def has_changes() -> bool:
-    status = run_git("status", "--porcelain")
+def has_changes(paths: list[str] | None = None) -> bool:
+    args = ["status", "--porcelain"]
+    if paths:
+        args.append("--")
+        args.extend(paths)
+    status = run_git(*args)
     return bool(status)

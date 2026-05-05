@@ -1,6 +1,4 @@
 from datetime import date
-from typing import Literal
-
 from pydantic import BaseModel, Field
 
 
@@ -73,18 +71,13 @@ class LintResult(BaseModel):
     contradictions: list[str] = Field(default_factory=list)
     stale: list[str] = Field(default_factory=list)
     gaps: list[str] = Field(default_factory=list)
+    missing_frontmatter: list[str] = Field(default_factory=list)
 
 
 # --- Agent states ---
 
-Command = Literal[
-    "status", "catalog", "ingest", "ingest-all",
-    "compile-concepts", "synthesize", "eval", "lint", "query",
-]
-
-
 class SupervisorState(BaseModel):
-    command: Command = "status"
+    command: str = "status"
     args: str = ""
     output: str = ""
 

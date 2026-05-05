@@ -36,7 +36,7 @@ class CatalogAgent(BaseAgent[CatalogState]):
         return {"new_files": self.vault.unprocessed_pdfs()}
 
     def process(self, state: CatalogState) -> dict:
-        new_files = state.get("new_files", [])
+        new_files = state.new_files
         if not new_files:
             return {"entries_added": 0, "report": "No new PDFs found."}
 

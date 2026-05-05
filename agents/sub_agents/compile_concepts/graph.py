@@ -44,7 +44,7 @@ class CompileConceptsAgent(BaseAgent[CompileState]):
         summaries = self.vault.list_summaries()
         created = []
 
-        for concept in state.get("concept_names", []):
+        for concept in state.concept_names:
             relevant = [
                 path.read_text() for path in summaries
                 if f"[[{concept}]]" in path.read_text()
@@ -67,8 +67,8 @@ class CompileConceptsAgent(BaseAgent[CompileState]):
         self.vault.regenerate_wiki_index()
         self.vault.regenerate_glossary()
 
-        created = state.get("created", [])
-        updated = state.get("updated", [])
+        created = state.created
+        updated = state.updated
         stats = self.vault.stats()
         report = (
             f"Created {len(created)} concepts, updated {len(updated)}. "

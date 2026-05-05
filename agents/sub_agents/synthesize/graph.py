@@ -20,7 +20,7 @@ class SynthesizeAgent(BaseAgent[SynthesizeState]):
         return g
 
     def gather(self, state: SynthesizeState) -> dict:
-        topic = state["topic"]
+        topic = state.topic
         all_files = (
             self.vault.list_summaries()
             + self.vault.list_concepts()
@@ -36,16 +36,16 @@ class SynthesizeAgent(BaseAgent[SynthesizeState]):
     def synthesize(self, state: SynthesizeState) -> dict:
         system = load_prompt("synthesize.md")
         human = (
-            f"Topic: {state['topic']}\n\n"
+            f"Topic: {state.topic}\n\n"
             f"Relevant wiki articles:\n\n"
-            + "\n---\n".join(state["relevant_articles"])
+            + "\n---\n".join(state.relevant_articles)
         )
         return {"synthesis": invoke(system, human, strong=True)}
 
     def save(self, state: SynthesizeState) -> dict:
-        topic_slug = state["topic"].lower().replace(" ", "-")
-        self.vault.save_article("connections", f"{topic_slug}.md", state["synthesis"])
+        topic_slug = state.topic.lower().replace(" ", "-")
+        self.vault.save_article("connections", f"{topic_slug}.md", state.synthesis)
         self.vault.regenerate_wiki_index()
 
-        count = len(state["relevant_articles"])
-        return {"report": f"Synthesized {count} articles on '{state['topic']}'. Saved to wiki/connections/{topic_slug}.md"}
+        count = len(state.relevant_articles)
+        return {"report": f"Synthesized {count} articles on '{state.topic}'. Saved to wiki/connections/{topic_slug}.md"}

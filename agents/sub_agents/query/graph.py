@@ -18,7 +18,7 @@ class QueryAgent(BaseAgent[QueryState]):
         return g
 
     def gather(self, state: QueryState) -> dict:
-        question = state["question"].lower()
+        question = state.question.lower()
         all_files = (
             self.vault.list_summaries()
             + self.vault.list_concepts()
@@ -36,9 +36,9 @@ class QueryAgent(BaseAgent[QueryState]):
 
     def answer(self, state: QueryState) -> dict:
         system = load_prompt("query.md")
-        context = "\n---\n".join(state["context"]) if state["context"] else "(No relevant articles found)"
+        context = "\n---\n".join(state.context) if state.context else "(No relevant articles found)"
         human = (
-            f"Question: {state['question']}\n\n"
+            f"Question: {state.question}\n\n"
             f"Wiki articles:\n\n{context}"
         )
         return {"answer": invoke(system, human, strong=True)}

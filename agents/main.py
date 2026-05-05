@@ -8,8 +8,9 @@ def main():
 
     if not args:
         print("Usage: kb <command> [args]")
-        print("Commands: status, catalog, ingest, ingest-all, compile-concepts,")
-        print("          synthesize, eval, lint, query, watch")
+        print("Commands: init, status, catalog, catalog-update, find, ingest,")
+        print("          ingest-all, compile-concepts, synthesize, slides, eval,")
+        print("          eval-all, lint, query, update-chapter, watch")
         sys.exit(1)
 
     command = args[0]

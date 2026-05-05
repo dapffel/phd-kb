@@ -30,15 +30,15 @@ class IngestAgent(BaseAgent[IngestState]):
         return g
 
     def route_fidelity(self, state: IngestState) -> str:
-        fidelity = state["fidelity"]
+        fidelity = state.fidelity
         if fidelity.passed:
             return "save"
-        if state.get("attempts", 1) >= settings.max_fidelity_attempts:
+        if state.attempts >= settings.max_fidelity_attempts:
             return "save"
         return "fix_summary"
 
     def extract(self, state: IngestState) -> dict:
-        filename = state["filename"]
+        filename = state.filename
         existing = self.vault.read_extract(filename)
         if existing:
             return {"source_text": existing}
@@ -49,20 +49,20 @@ class IngestAgent(BaseAgent[IngestState]):
 
     def compile(self, state: IngestState) -> dict:
         system = load_prompt("compile-source.md")
-        summary = invoke(system, state["source_text"], strong=True)
+        summary = invoke(system, state.source_text, strong=True)
         return {"summary": summary, "attempts": 1}
 
     def fidelity_check(self, state: IngestState) -> dict:
         system = load_prompt("eval-source.md")
         human = (
-            f"## Source Text\n{state['source_text'][:8000]}\n\n"
-            f"## Summary to Evaluate\n{state['summary']}"
+            f"## Source Text\n{state.source_text[:8000]}\n\n"
+            f"## Summary to Evaluate\n{state.summary}"
         )
         raw = invoke(system, human)
         return {"fidelity": self._parse_fidelity(raw)}
 
     def fix_summary(self, state: IngestState) -> dict:
-        issues = state["fidelity"].issues
+        issues = state.fidelity.issues
         issue_text = "\n".join(f"- {i.classification}: {i.claim}" for i in issues)
 
         system = (
@@ -71,25 +71,25 @@ class IngestAgent(BaseAgent[IngestState]):
         )
         human = (
             f"## Issues Found\n{issue_text}\n\n"
-            f"## Original Source\n{state['source_text'][:6000]}\n\n"
-            f"## Current Summary\n{state['summary']}"
+            f"## Original Source\n{state.source_text[:6000]}\n\n"
+            f"## Current Summary\n{state.summary}"
         )
         fixed = invoke(system, human, strong=True)
-        return {"summary": fixed, "attempts": state.get("attempts", 1) + 1}
+        return {"summary": fixed, "attempts": state.attempts + 1}
 
     def save(self, state: IngestState) -> dict:
-        filename = state["filename"]
+        filename = state.filename
         stem = filename.rsplit(".", 1)[0]
 
-        self.vault.save_article("summaries", f"{stem}.md", state["summary"])
+        self.vault.save_article("summaries", f"{stem}.md", state.summary)
 
-        concepts = re.findall(r"\[\[([^\]]+)\]\]", state["summary"])
+        concepts = re.findall(r"\[\[([^\]]+)\]\]", state.summary)
         existing = {f.stem for f in self.vault.list_concepts()}
         new_concepts = [c for c in concepts if c not in existing]
 
         self.vault.mark_ingested(filename)
 
-        title_match = re.search(r'title:\s*"?([^"\n]+)"?', state["summary"])
+        title_match = re.search(r'title:\s*"?([^"\n]+)"?', state.summary)
         title = title_match.group(1) if title_match else filename
         self.vault.update_sources_file(filename, title)
         self.vault.regenerate_wiki_index()
@@ -97,9 +97,9 @@ class IngestAgent(BaseAgent[IngestState]):
         result = IngestResult(
             source_filename=filename,
             summary_path=f"wiki/summaries/{stem}.md",
-            fidelity=state["fidelity"],
+            fidelity=state.fidelity,
             detected_concepts=new_concepts,
-            attempts=state.get("attempts", 1),
+            attempts=state.attempts,
         )
         return {"detected_concepts": new_concepts, "result": result}
 
