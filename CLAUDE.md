@@ -1,10 +1,10 @@
-# PhD Knowledge Base — Claude Code Setup Instructions
+# PhD Knowledge Base — LLM Instructions
 
 ## What This Is
 
-These instructions tell Claude Code how to scaffold and maintain a personal knowledge base for your PhD research. The system has two layers: an **articles wiki** (LLM-written summaries of papers you've read) and **research chapters** (your synthesis and arguments). Both live in one Obsidian vault.
+These instructions tell the LLM how to scaffold and maintain a personal knowledge base for your PhD research. The system has two layers: an **articles wiki** (LLM-written summaries of papers you've read) and **research chapters** (your synthesis and arguments). Both live in one Obsidian vault.
 
-Copy this entire file into your Claude Code session, or save it as `CLAUDE.md` in your project root so Claude Code reads it automatically.
+This file defines how the LLM should manage this vault. Claude Code reads it automatically as `CLAUDE.md`. For other tools (ChatGPT, Gemini, Cursor, etc.), paste the contents as system context.
 
 ---
 
@@ -42,7 +42,7 @@ phd-kb/
 │   ├── slides/                   # Marp-format slide decks
 │   └── figures/                  # Generated charts, diagrams, visualizations
 │
-├── prompts/                      # Reusable prompt templates (used by Claude Code)
+├── prompts/                      # Reusable prompt templates (used by the LLM)
 │   ├── compile-source.md
 │   ├── write-concept.md
 │   ├── lint-wiki.md
@@ -51,7 +51,7 @@ phd-kb/
 │   ├── synthesize.md
 │   └── eval-source.md
 │
-├── CLAUDE.md                     # This file — Claude Code reads it automatically
+├── CLAUDE.md                     # This file — LLM instructions (auto-read by Claude Code)
 └── .gitignore
 ```
 
@@ -60,7 +60,7 @@ phd-kb/
 ## Core Rules
 
 1. **Never edit files in `raw/` automatically.** That directory is human-curated. Only read from it.
-2. **Never hand-edit files in `wiki/`.** All wiki content is generated and maintained by you (Claude Code). If something is wrong, fix the source or the prompt and regenerate.
+2. **Never hand-edit files in `wiki/`.** All wiki content is generated and maintained by the LLM. If something is wrong, fix the source or the prompt and regenerate.
 3. **Research chapter files in `research/` are collaborative.** The human writes their arguments; you help draft, expand, and update sections when asked. Always preserve the human's voice and intent.
 4. **Always use Obsidian-style `[[wikilinks]]`** when referencing other articles. Use the filename without extension as the link target (e.g., `[[attention-mechanisms]]` links to `wiki/concepts/attention-mechanisms.md`).
 5. **Every wiki article must have YAML frontmatter** with at least: `title`, `created`, `updated`, `type` (summary | concept | connection), and `sources` (list of source filenames).
@@ -655,7 +655,7 @@ research/
 | Directory | Tracked? | Why |
 |-----------|----------|-----|
 | `prompts/` | Yes | These are the "source code" of your system. Version them like code. |
-| `CLAUDE.md` | Yes | Your system configuration. Track every change. |
+| `CLAUDE.md` | Yes | LLM instructions. Track every change. |
 | `wiki/` | Yes | Diffs show exactly what the LLM changed on each compilation. |
 | `research/` | **No (for now)** | Your premature thinking and drafts stay local. When a chapter hits a milestone, remove `research/` from `.gitignore` and start tracking. Back up via cloud sync in the meantime. |
 | `outputs/` | Yes | Eval reports, generated slides, figures — all worth keeping. |
@@ -667,7 +667,7 @@ research/
 
 ### Commit conventions
 
-After any operation, Claude Code should suggest a commit with a prefixed message:
+After any operation, The LLM should suggest a commit with a prefixed message:
 
 - `init: scaffold vault structure and prompt templates`
 - `ingest: add smith2024-attention, 1 summary created, fidelity check passed`
@@ -692,7 +692,7 @@ This is especially valuable when you change `prompts/compile-source.md` or `prom
 
 ### When to commit
 
-Claude Code should suggest a commit after every command that changes tracked files:
+The LLM should suggest a commit after every command that changes tracked files:
 - After `ingest` or `ingest-all`
 - After `compile-concepts`
 - After `synthesize`
@@ -710,7 +710,7 @@ When you're ready to start tracking a chapter (or all of research/):
 2. `git add research/`
 3. Commit: `research: begin tracking chapter-1 (first complete draft)`
 
-From that point on, Claude Code should suggest commits after `update-chapter` as well. You can graduate one chapter at a time — just replace `research/` in `.gitignore` with the specific files you still want excluded (e.g., `research/chapter-3-findings.md`).
+From that point on, The LLM should suggest commits after `update-chapter` as well. You can graduate one chapter at a time — just replace `research/` in `.gitignore` with the specific files you still want excluded (e.g., `research/chapter-3-findings.md`).
 
 ---
 
