@@ -3,6 +3,7 @@ from langgraph.graph import StateGraph, END
 from agents.config import settings
 from agents.llm import invoke, load_prompt
 from agents.models import EvalState
+from agents.state import state_get
 from agents.sub_agents.base import BaseAgent
 
 
@@ -19,7 +20,7 @@ class EvalAgent(BaseAgent[EvalState]):
         return g
 
     def evaluate(self, state: EvalState) -> dict:
-        filename = state.filename
+        filename = state_get(state, "filename", "")
         stem = filename.rsplit(".", 1)[0]
 
         summary_path = settings.wiki_dir / "summaries" / f"{stem}.md"
@@ -40,14 +41,15 @@ class EvalAgent(BaseAgent[EvalState]):
         return {"eval_report": invoke(system, human, strong=True)}
 
     def save(self, state: EvalState) -> dict:
-        if not state.eval_report:
+        eval_report = state_get(state, "eval_report", "")
+        if not eval_report:
             return {}
 
-        filename = state.filename
+        filename = state_get(state, "filename", "")
         stem = filename.rsplit(".", 1)[0]
         output_path = settings.outputs_dir / "evals" / f"eval-{stem}.md"
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(state.eval_report)
+        output_path.write_text(eval_report)
 
         return {"report": f"Eval saved to outputs/evals/eval-{stem}.md"}
 

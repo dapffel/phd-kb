@@ -2,6 +2,7 @@ from langgraph.graph import StateGraph, END
 
 from agents.llm import invoke, load_prompt
 from agents.models import QueryState
+from agents.state import state_get
 from agents.sub_agents.base import BaseAgent
 
 
@@ -18,7 +19,7 @@ class QueryAgent(BaseAgent[QueryState]):
         return g
 
     def gather(self, state: QueryState) -> dict:
-        question = state.question.lower()
+        question = state_get(state, "question", "").lower()
         all_files = (
             self.vault.list_summaries()
             + self.vault.list_concepts()
@@ -36,9 +37,10 @@ class QueryAgent(BaseAgent[QueryState]):
 
     def answer(self, state: QueryState) -> dict:
         system = load_prompt("query.md")
-        context = "\n---\n".join(state.context) if state.context else "(No relevant articles found)"
+        context_items = state_get(state, "context", [])
+        context = "\n---\n".join(context_items) if context_items else "(No relevant articles found)"
         human = (
-            f"Question: {state.question}\n\n"
+            f"Question: {state_get(state, 'question', '')}\n\n"
             f"Wiki articles:\n\n{context}"
         )
         return {"answer": invoke(system, human, strong=True)}

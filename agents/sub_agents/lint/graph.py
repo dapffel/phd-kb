@@ -134,7 +134,17 @@ class LintAgent(BaseAgent[LintState]):
         return sorted(link for link, count in counts.items() if count >= 3 and link not in existing)
 
     def _contradiction_candidates(self, paths) -> list[str]:
-        patterns = ("contradict", "conflict", "disagree", "diverge", "however", "whereas")
+        patterns = re.compile(
+            r"\b("
+            r"contradict(?:s|ion|ory)?|"
+            r"conflict(?:s|ing)?|"
+            r"disagree(?:s|ment)?|"
+            r"diverge(?:s|d|nce)?|"
+            r"in tension|"
+            r"trade-?off"
+            r")\b",
+            re.IGNORECASE,
+        )
         candidates = []
         for path in paths:
             if path.stem == "contradictions":
@@ -145,17 +155,23 @@ class LintAgent(BaseAgent[LintState]):
                 content = path.read_text()
             for line in content.splitlines():
                 clean = line.strip()
-                if clean and any(pattern in clean.lower() for pattern in patterns):
+                if clean and patterns.search(clean):
                     candidates.append(f"[[{path.stem}]]: {clean[:180]}")
                     break
         return candidates
 
     def _write_contradictions(self, contradictions: list[str]):
         path = settings.wiki_dir / "connections" / "contradictions.md"
+        created = date.today().isoformat()
+        if path.exists():
+            try:
+                created = str(frontmatter.load(str(path)).get("created", created))
+            except Exception:
+                pass
         lines = [
             "---",
             'title: "Contradictions and Tensions"',
-            f"created: {date.today().isoformat()}",
+            f"created: {created}",
             f"updated: {date.today().isoformat()}",
             "type: connection",
             "sources: []",
@@ -167,5 +183,7 @@ class LintAgent(BaseAgent[LintState]):
             "",
         ]
         lines += [f"- {item}" for item in contradictions]
-        path.write_text("\n".join(lines) + "\n")
-        self.vault.regenerate_wiki_index()
+        content = "\n".join(lines) + "\n"
+        if not path.exists() or path.read_text() != content:
+            path.write_text(content)
+            self.vault.regenerate_wiki_index()

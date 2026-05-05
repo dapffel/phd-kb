@@ -4,6 +4,7 @@ from langgraph.graph import StateGraph, END
 
 from agents.llm import invoke
 from agents.models import CatalogEntry, CatalogState
+from agents.state import state_get
 from agents.sub_agents.base import BaseAgent
 
 
@@ -36,7 +37,7 @@ class CatalogAgent(BaseAgent[CatalogState]):
         return {"new_files": self.vault.unprocessed_pdfs()}
 
     def process(self, state: CatalogState) -> dict:
-        new_files = state.new_files
+        new_files = state_get(state, "new_files", [])
         if not new_files:
             return {"entries_added": 0, "report": "No new PDFs found."}
 
