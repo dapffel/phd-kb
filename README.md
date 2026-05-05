@@ -4,7 +4,7 @@ LLM-maintained research knowledge base built as an Obsidian vault. Drop PDFs, te
 
 Works with any LLM: Claude Code, ChatGPT, Gemini, Cursor, Copilot, or any tool that can read files and follow instructions.
 
-## Setup (0 to 1)
+## Setup
 
 ### 1. Clone the repo
 
