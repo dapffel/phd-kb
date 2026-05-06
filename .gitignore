@@ -21,8 +21,9 @@ raw/web/*.pdf
 .obsidian/plugins/*/data.json
 
 # Research chapters — excluded until you're ready to commit them.
-# These are YOUR premature thinking and drafts. When a chapter reaches
-# a milestone you're comfortable with, remove the line below and commit.
-# Until then, research/ stays local-only — back it up manually or via
-# cloud sync (iCloud, Dropbox, etc.) for safety.
-research/
+# The README and templates stay tracked; your actual chapter drafts stay local.
+research/*
+!research/.gitkeep
+!research/README.md
+!research/templates/
+!research/templates/*.md

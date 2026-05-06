@@ -4,7 +4,7 @@
 
 These instructions tell the LLM how to scaffold and maintain a personal knowledge base for your PhD research. The system has two layers: an **articles wiki** (LLM-written summaries of papers you've read) and **research chapters** (your synthesis and arguments). Both live in one Obsidian vault.
 
-This file defines how the LLM should manage this vault. Claude Code reads it automatically as `CLAUDE.md`. For other tools (ChatGPT, Gemini, Cursor, etc.), paste the contents as system context.
+This file defines how the LLM should manage this vault. Claude Code reads it automatically as `CLAUDE.md`. Tools that read `AGENTS.md` should use that file as a pointer back to this canonical instruction set. For other tools, paste the contents of this file as system context.
 
 ---
 
@@ -31,10 +31,7 @@ phd-kb/
 │   └── _glossary.md              # Alphabetical term definitions
 │
 ├── research/                     # YOUR dissertation chapters and synthesis
-│   ├── chapter-1-current-state.md
-│   ├── chapter-2-methodology.md
-│   ├── chapter-3-findings.md
-│   └── _research-index.md        # Overview of all chapters and their status
+│   └── templates/                # Starter chapter templates tracked in Git
 │
 ├── outputs/                      # Generated deliverables
 │   ├── reports/                  # Research reports, literature reviews
@@ -51,7 +48,8 @@ phd-kb/
 │   ├── synthesize.md
 │   └── eval-source.md
 │
-├── CLAUDE.md                     # This file — LLM instructions (auto-read by Claude Code)
+├── CLAUDE.md                     # This file — canonical LLM instructions
+├── AGENTS.md                     # Pointer for tools that auto-read AGENTS.md
 └── .gitignore
 ```
 
@@ -543,9 +541,9 @@ Rules:
 
 ## Research Chapter Template
 
-When running `init`, create these starter files in `research/`:
+When running `init`, create these starter templates in `research/templates/`. Users can copy them into the root of `research/` when they are ready to draft chapters. The root chapter drafts are ignored by Git by default.
 
-### `research/chapter-1-current-state.md`
+### `research/templates/chapter-1-current-state.md`
 
 ```markdown
 ---
@@ -587,7 +585,7 @@ Your argument. What do YOU think, based on the evidence?
 - [ ] Items you still need to address
 ```
 
-### `research/_research-index.md`
+### `research/templates/_research-index.md`
 
 ```markdown
 ---
@@ -639,11 +637,12 @@ raw/web/*.pdf
 .obsidian/plugins/*/data.json
 
 # Research chapters — excluded until you're ready to commit them.
-# These are YOUR premature thinking and drafts. When a chapter reaches
-# a milestone you're comfortable with, remove the line below and commit.
-# Until then, research/ stays local-only — back it up manually or via
-# cloud sync (iCloud, Dropbox, etc.) for safety.
-research/
+# The README and templates stay tracked; your actual chapter drafts stay local.
+research/*
+!research/.gitkeep
+!research/README.md
+!research/templates/
+!research/templates/*.md
 ```
 
 ---
@@ -657,7 +656,7 @@ research/
 | `prompts/` | Yes | These are the "source code" of your system. Version them like code. |
 | `CLAUDE.md` | Yes | LLM instructions. Track every change. |
 | `wiki/` | Yes | Diffs show exactly what the LLM changed on each compilation. |
-| `research/` | **No (for now)** | Your premature thinking and drafts stay local. When a chapter hits a milestone, remove `research/` from `.gitignore` and start tracking. Back up via cloud sync in the meantime. |
+| `research/` | **Templates only** | Starter templates are tracked. Your actual chapter drafts stay local until you deliberately start tracking them. Back up drafts via cloud sync in the meantime. |
 | `outputs/` | Yes | Eval reports, generated slides, figures — all worth keeping. |
 | `raw/**/*.md` | Yes | Extracted text from papers — lightweight and important. |
 | `raw/**/*.pdf` | No | Large binaries. Store in Zotero, Google Drive, or Git LFS. |
@@ -706,11 +705,11 @@ Never auto-commit without telling the user. Always print the suggested commit me
 ### Graduating research/ to Git
 
 When you're ready to start tracking a chapter (or all of research/):
-1. Remove the `research/` line from `.gitignore`
+1. Remove or narrow the `research/*` rule in `.gitignore`
 2. `git add research/`
 3. Commit: `research: begin tracking chapter-1 (first complete draft)`
 
-From that point on, The LLM should suggest commits after `update-chapter` as well. You can graduate one chapter at a time — just replace `research/` in `.gitignore` with the specific files you still want excluded (e.g., `research/chapter-3-findings.md`).
+From that point on, The LLM should suggest commits after `update-chapter` as well. You can graduate one chapter at a time by narrowing the ignore rule to the specific files you still want excluded (e.g., `research/chapter-3-findings.md`).
 
 ---
 

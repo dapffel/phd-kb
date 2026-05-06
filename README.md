@@ -4,7 +4,9 @@
 
 A structured Obsidian vault for managing PhD research literature. You add papers, tell your LLM to process them, and it builds an interlinked wiki of summaries, concepts, and cross-source syntheses.
 
-The LLM follows instructions defined in `CLAUDE.md` — no custom code or plugins required.
+The LLM follows instructions defined in `CLAUDE.md` and `AGENTS.md` — no custom code or plugins required.
+
+New here? Start with [QUICKSTART.md](QUICKSTART.md) for the shortest first-paper workflow.
 
 ## What you need
 
@@ -36,7 +38,7 @@ Open Obsidian → **Open folder as vault** → select the `phd-kb` folder.
 
 **Claude Code (recommended)** — run `claude` in the repo root. It reads `CLAUDE.md` automatically.
 
-**OpenAI Codex** — run `codex` in the repo root. Point it to `CLAUDE.md` as its instructions file.
+**OpenAI Codex** — run `codex` in the repo root. It reads `AGENTS.md` automatically; `AGENTS.md` points it to the same canonical instructions.
 
 **Cursor / Copilot** — open the repo in your IDE. Point the AI assistant to `CLAUDE.md` as its instructions file.
 
@@ -48,9 +50,11 @@ Rename your PDF to `authorYEAR-keyword.pdf` and drop it into `raw/papers/`:
 raw/papers/smith2024-habitat-loss.pdf
 ```
 
+PDFs are ignored by Git. Keep your source PDFs backed up in Zotero, Google Drive, Dropbox, OneDrive, or another storage system. This repo tracks the lightweight extracted `.md` text and generated wiki, not the large source PDFs.
+
 ### 5. Ingest it
 
-Tell your LLM:
+Tell your LLM by typing this into the LLM chat or agent prompt, not into your terminal:
 
 ```
 ingest smith2024-habitat-loss.pdf
@@ -60,7 +64,7 @@ The LLM will read the PDF, generate a structured summary in `wiki/summaries/`, a
 
 ### 6. Build up the wiki
 
-As you add more papers, ask the LLM to run these workflows:
+As you add more papers, ask the LLM to run these workflows. These are prompts for the LLM, not shell commands:
 
 ```
 catalog              — register new PDFs and extract metadata
@@ -71,7 +75,7 @@ lint                 — check wiki health (broken links, orphans, gaps)
 status               — see where things stand
 ```
 
-These are not CLI commands — they are instructions the LLM understands from `CLAUDE.md`. Type them as prompts to your LLM.
+Stronger models are recommended for `ingest`, `eval`, and `synthesize`, because those workflows require careful source reading and fidelity checks.
 
 ## Structure
 
@@ -82,10 +86,12 @@ phd-kb/
 ├── wiki/summaries/    — one summary per source (LLM-generated)
 ├── wiki/concepts/     — standalone concept articles (LLM-generated)
 ├── wiki/connections/  — cross-source syntheses (LLM-generated)
-├── research/          — your dissertation chapters (yours to write)
+├── research/          — your dissertation chapters and tracked templates
 ├── prompts/           — prompt templates (the logic driving generation)
 └── outputs/           — reports, evals, slides
 ```
+
+Each major folder includes a short `README.md` explaining what belongs there.
 
 ## Conventions
 
@@ -94,13 +100,15 @@ phd-kb/
 - **Frontmatter**: every wiki article has YAML with `title`, `type`, `sources`, `created`, `updated`
 - **raw/** is yours — the LLM reads from it but never edits it
 - **wiki/** is the LLM's — never hand-edit, regenerate instead
+- **research/** is yours — chapter drafts are ignored by Git until you choose to track them; starter templates live in `research/templates/`
 
 ## Limitations
 
 - Results depend on the LLM you use. Stronger models produce better summaries and more reliable fidelity checks.
 - `CLAUDE.md` is long. LLMs with small context windows may not follow all instructions consistently.
 - PDF extraction quality varies — scanned PDFs or complex layouts may need manual cleanup.
+- Web chat tools that require uploading documents may create privacy or copyright concerns. Prefer local filesystem agents when working with copyrighted papers.
 
 ## Full specification
 
-See `CLAUDE.md` for the complete workflow definitions, output formats, and rules.
+See `CLAUDE.md` for the complete workflow definitions, output formats, and rules. `AGENTS.md` is included for tools that look for that filename.
