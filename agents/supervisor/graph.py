@@ -1,3 +1,4 @@
+import re
 from datetime import date
 
 from langgraph.graph import StateGraph, END
@@ -168,24 +169,78 @@ class Supervisor:
         return self._with_commit_suggestion(result.report or "Eval complete.", f"eval: check {args}")
 
     def _eval_all(self, args: str) -> str:
-        reports = []
         articles = self.vault.list_summaries() + self.vault.list_concepts()
+        per_article: list[dict] = []
+
         for path in articles:
             result = EvalAgent(self.vault).run(EvalState(filename=path.name))
-            reports.append(result.report or f"Eval complete for {path.name}.")
+            counts = self._parse_eval_counts(result.eval_report)
+            counts["filename"] = path.name
+            per_article.append(counts)
+
+        total_claims = sum(a["claims"] for a in per_article)
+        total_verified = sum(a["verified"] for a in per_article)
+        total_distorted = sum(a["distorted"] for a in per_article)
+        total_unsupported = sum(a["unsupported"] for a in per_article)
+        total_missing = sum(a["missing"] for a in per_article)
+        fidelity_pct = (total_verified / total_claims * 100) if total_claims else 0
+
+        by_issues = sorted(per_article, key=lambda a: a["issues"], reverse=True)
+
+        lines = [
+            "# Eval Summary\n",
+            f"**Date**: {date.today().isoformat()}",
+            f"**Articles evaluated**: {len(per_article)}",
+            f"**Overall fidelity**: {fidelity_pct:.0f}% ({total_verified}/{total_claims} claims verified)\n",
+            "## Error Type Breakdown\n",
+            f"| Type | Count |",
+            f"|------|-------|",
+            f"| Distorted | {total_distorted} |",
+            f"| Unsupported | {total_unsupported} |",
+            f"| Missing attribution | {total_missing} |",
+            "",
+            "## Articles by Issue Count\n",
+            "| Article | Claims | Verified | Issues |",
+            "|---------|--------|----------|--------|",
+        ]
+        for a in by_issues:
+            lines.append(f"| {a['filename']} | {a['claims']} | {a['verified']} | {a['issues']} |")
+
+        needs_attention = [a["filename"] for a in by_issues if a["issues"] > 0]
+        if needs_attention:
+            lines += ["", "## Needs Attention\n"]
+            for name in needs_attention:
+                lines.append(f"- {name}")
 
         summary_path = settings.outputs_dir / "evals" / "_eval-summary.md"
         summary_path.parent.mkdir(parents=True, exist_ok=True)
-        summary_path.write_text(
-            "# Eval Summary\n\n"
-            f"Date: {date.today().isoformat()}\n\n"
-            + "\n".join(f"- {line}" for line in reports)
-            + "\n"
-        )
+        summary_path.write_text("\n".join(lines) + "\n")
+
         return self._with_commit_suggestion(
-            f"Eval-all complete for {len(reports)} articles. Roll-up saved to outputs/evals/_eval-summary.md",
-            "eval: eval-all run",
+            f"Eval-all: {len(per_article)} articles, {fidelity_pct:.0f}% fidelity. "
+            f"Roll-up saved to outputs/evals/_eval-summary.md",
+            f"eval: eval-all run, {fidelity_pct:.0f}% fidelity",
         )
+
+    @staticmethod
+    def _parse_eval_counts(raw: str) -> dict:
+        def _find(label: str) -> int:
+            m = re.search(rf"\*?\*?{label}\*?\*?\s*[:\|]\s*(\d+)", raw or "", re.IGNORECASE)
+            return int(m.group(1)) if m else 0
+
+        claims = _find("Claims.checked")
+        verified = _find("Verified")
+        distorted = _find("Distorted")
+        unsupported = _find("Unsupported")
+        missing = _find("Missing.attribution")
+        return {
+            "claims": claims,
+            "verified": verified,
+            "distorted": distorted,
+            "unsupported": unsupported,
+            "missing": missing,
+            "issues": distorted + unsupported + missing,
+        }
 
     def _lint(self, args: str) -> str:
         result = LintAgent(self.vault).run()
