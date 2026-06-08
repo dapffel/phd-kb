@@ -195,7 +195,13 @@ class Supervisor:
         if not args:
             return "Usage: query <question>"
         result = QueryAgent(self.vault).run(QueryState(question=args))
-        return result.answer
+        slug = args.strip()[:60].lower().replace(" ", "-")
+        return (
+            f"{result.answer}\n\n"
+            f"Save this answer? Run:\n"
+            f"  `synthesize {slug}` → wiki/connections/{slug}.md\n"
+            f"Or save manually to outputs/reports/{slug}.md"
+        )
 
     def _update_chapter(self, args: str) -> str:
         return update_chapter(self.vault, args)
