@@ -262,9 +262,24 @@ class Vault:
         pdfs = settings.papers_dir.glob("*.pdf")
         return [p.name for p in pdfs if p.name not in cataloged]
 
+    def unprocessed_web(self) -> list[str]:
+        if not settings.web_dir.exists():
+            return []
+        existing_summaries = {f.stem for f in self.list_summaries()}
+        return [
+            p.name for p in settings.web_dir.glob("*.md")
+            if not p.name.startswith("_") and p.stem not in existing_summaries
+        ]
+
     def uningested_papers(self) -> list[str]:
         catalog = self.load_catalog()
         return [e.filename for e in catalog if e.extracted and not e.ingested]
+
+    def read_web_source(self, filename: str) -> str:
+        path = settings.web_dir / filename
+        if not path.exists():
+            raise FileNotFoundError(f"Web source not found: {path}")
+        return path.read_text()
 
 
 def _today() -> str:

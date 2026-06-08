@@ -20,6 +20,10 @@ class Settings(BaseSettings):
         return self.raw_dir / "papers"
 
     @property
+    def web_dir(self) -> Path:
+        return self.raw_dir / "web"
+
+    @property
     def wiki_dir(self) -> Path:
         return self.vault_root / "wiki"
 

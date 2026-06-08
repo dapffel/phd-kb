@@ -127,10 +127,11 @@ class Supervisor:
     def _ingest_all(self, args: str) -> str:
         unprocessed = self.vault.unprocessed_pdfs()
         uningested = self.vault.uningested_papers()
-        targets = list(set(unprocessed + uningested))
+        web = self.vault.unprocessed_web()
+        targets = list(dict.fromkeys(unprocessed + uningested + web))
 
         if not targets:
-            return "All papers already ingested."
+            return "All sources already ingested."
 
         results = [self._ingest(filename) for filename in targets]
         return "\n\n".join(results)

@@ -40,6 +40,17 @@ class IngestAgent(BaseAgent[IngestState]):
 
     def extract(self, state: IngestState) -> dict:
         filename = state_get(state, "filename", "")
+
+        if filename.endswith(".md"):
+            from agents.config import settings
+            web_path = settings.web_dir / filename
+            papers_path = settings.papers_dir / filename
+            if web_path.exists():
+                return {"source_text": web_path.read_text()}
+            elif papers_path.exists():
+                return {"source_text": papers_path.read_text()}
+            raise FileNotFoundError(f"Markdown source not found: {filename}")
+
         existing = self.vault.read_extract(filename)
         if existing:
             return {"source_text": existing}
