@@ -24,7 +24,6 @@ from agents.sub_agents.synthesize.graph import SynthesizeAgent
 from agents.sub_agents.eval_agent.graph import EvalAgent
 from agents.sub_agents.lint.graph import LintAgent
 from agents.sub_agents.query.graph import QueryAgent
-from agents.state import state_get
 
 
 class Supervisor:
@@ -46,8 +45,8 @@ class Supervisor:
         return result.output
 
     def route(self, state: SupervisorState) -> dict:
-        command = state_get(state, "command")
-        args = state_get(state, "args", "")
+        command = state.command
+        args = state.args
 
         handler = {
             "init": self._init,

@@ -3,7 +3,6 @@ from langgraph.graph import StateGraph, END
 from agents.config import settings
 from agents.llm import invoke, load_prompt
 from agents.models import EvalState
-from agents.state import state_get
 from agents.sub_agents.base import BaseAgent
 
 
@@ -20,18 +19,17 @@ class EvalAgent(BaseAgent[EvalState]):
         return g
 
     def evaluate(self, state: EvalState) -> dict:
-        filename = state_get(state, "filename", "")
-        stem = filename.rsplit(".", 1)[0]
+        stem = state.filename.rsplit(".", 1)[0]
 
         summary_path = settings.wiki_dir / "summaries" / f"{stem}.md"
         concept_path = settings.wiki_dir / "concepts" / f"{stem}.md"
         article_path = summary_path if summary_path.exists() else concept_path
         if not article_path.exists():
-            return {"eval_report": "", "report": f"No wiki article found for {filename}"}
+            return {"eval_report": "", "report": f"No wiki article found for {state.filename}"}
 
-        source_text = self._source_text(filename, article_path)
+        source_text = self._source_text(state.filename, article_path)
         if not source_text:
-            return {"eval_report": "", "report": f"No source extracts found for {filename}"}
+            return {"eval_report": "", "report": f"No source extracts found for {state.filename}"}
 
         system = load_prompt("eval-source.md")
         human = (
@@ -41,15 +39,13 @@ class EvalAgent(BaseAgent[EvalState]):
         return {"eval_report": invoke(system, human, strong=True)}
 
     def save(self, state: EvalState) -> dict:
-        eval_report = state_get(state, "eval_report", "")
-        if not eval_report:
+        if not state.eval_report:
             return {}
 
-        filename = state_get(state, "filename", "")
-        stem = filename.rsplit(".", 1)[0]
+        stem = state.filename.rsplit(".", 1)[0]
         output_path = settings.outputs_dir / "evals" / f"eval-{stem}.md"
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(eval_report)
+        output_path.write_text(state.eval_report)
 
         return {"report": f"Eval saved to outputs/evals/eval-{stem}.md"}
 

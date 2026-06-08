@@ -5,7 +5,6 @@ from langgraph.graph import StateGraph, END
 from agents.config import settings
 from agents.llm import invoke, load_prompt
 from agents.models import FidelityIssue, FidelityResult, IngestResult, IngestState
-from agents.state import state_get
 from agents.sub_agents.base import BaseAgent
 
 
@@ -31,18 +30,16 @@ class IngestAgent(BaseAgent[IngestState]):
         return g
 
     def route_fidelity(self, state: IngestState) -> str:
-        fidelity = state_get(state, "fidelity")
-        if fidelity.passed:
+        if state.fidelity.passed:
             return "save"
-        if state_get(state, "attempts", 0) >= settings.max_fidelity_attempts:
+        if state.attempts >= settings.max_fidelity_attempts:
             return "save"
         return "fix_summary"
 
     def extract(self, state: IngestState) -> dict:
-        filename = state_get(state, "filename", "")
+        filename = state.filename
 
         if filename.endswith(".md"):
-            from agents.config import settings
             web_path = settings.web_dir / filename
             papers_path = settings.papers_dir / filename
             if web_path.exists():
@@ -61,42 +58,39 @@ class IngestAgent(BaseAgent[IngestState]):
 
     def compile(self, state: IngestState) -> dict:
         system = load_prompt("compile-source.md")
-        summary = invoke(system, state_get(state, "source_text", ""), strong=True)
+        summary = invoke(system, state.source_text, strong=True)
         return {"summary": summary, "attempts": 1}
 
     def fidelity_check(self, state: IngestState) -> dict:
         system = load_prompt("eval-source.md")
-        source_text = state_get(state, "source_text", "")
-        summary = state_get(state, "summary", "")
         human = (
-            f"## Source Text\n{source_text[:8000]}\n\n"
-            f"## Summary to Evaluate\n{summary}"
+            f"## Source Text\n{state.source_text[:8000]}\n\n"
+            f"## Summary to Evaluate\n{state.summary}"
         )
         raw = invoke(system, human)
         return {"fidelity": self._parse_fidelity(raw)}
 
     def fix_summary(self, state: IngestState) -> dict:
-        issues = state_get(state, "fidelity").issues
-        issue_text = "\n".join(f"- {i.classification}: {i.claim}" for i in issues)
+        issue_text = "\n".join(
+            f"- {i.classification}: {i.claim}" for i in state.fidelity.issues
+        )
 
         system = (
             "You are a research wiki editor. Fix the following summary based on "
             "the fidelity issues found. Return the complete corrected summary."
         )
-        source_text = state_get(state, "source_text", "")
-        summary = state_get(state, "summary", "")
         human = (
             f"## Issues Found\n{issue_text}\n\n"
-            f"## Original Source\n{source_text[:6000]}\n\n"
-            f"## Current Summary\n{summary}"
+            f"## Original Source\n{state.source_text[:6000]}\n\n"
+            f"## Current Summary\n{state.summary}"
         )
         fixed = invoke(system, human, strong=True)
-        return {"summary": fixed, "attempts": state_get(state, "attempts", 0) + 1}
+        return {"summary": fixed, "attempts": state.attempts + 1}
 
     def save(self, state: IngestState) -> dict:
-        filename = state_get(state, "filename", "")
+        filename = state.filename
         stem = filename.rsplit(".", 1)[0]
-        summary = state_get(state, "summary", "")
+        summary = state.summary
 
         self.vault.save_article("summaries", f"{stem}.md", summary)
 
@@ -114,9 +108,9 @@ class IngestAgent(BaseAgent[IngestState]):
         result = IngestResult(
             source_filename=filename,
             summary_path=f"wiki/summaries/{stem}.md",
-            fidelity=state_get(state, "fidelity"),
+            fidelity=state.fidelity,
             detected_concepts=new_concepts,
-            attempts=state_get(state, "attempts", 0),
+            attempts=state.attempts,
         )
         return {"detected_concepts": new_concepts, "result": result}
 

@@ -4,7 +4,6 @@ from langgraph.graph import StateGraph, END
 
 from agents.llm import invoke, load_prompt
 from agents.models import CompileState
-from agents.state import state_get
 from agents.sub_agents.base import BaseAgent
 
 
@@ -46,7 +45,7 @@ class CompileConceptsAgent(BaseAgent[CompileState]):
         created = []
 
         summary_contents = [(path, path.read_text()) for path in summaries]
-        for concept in state_get(state, "concept_names", []):
+        for concept in state.concept_names:
             relevant = [
                 content for path, content in summary_contents
                 if f"[[{concept}]]" in content
@@ -69,8 +68,8 @@ class CompileConceptsAgent(BaseAgent[CompileState]):
         self.vault.regenerate_wiki_index()
         self.vault.regenerate_glossary()
 
-        created = state_get(state, "created", [])
-        updated = state_get(state, "updated", [])
+        created = state.created
+        updated = state.updated
         stats = self.vault.stats()
         report = (
             f"Created {len(created)} concepts, updated {len(updated)}. "
