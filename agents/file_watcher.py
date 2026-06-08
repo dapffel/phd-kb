@@ -11,7 +11,7 @@ class PDFHandler(FileSystemEventHandler):
     def __init__(self, supervisor: Supervisor):
         self.supervisor = supervisor
 
-    def on_created(self, event):
+    def on_created(self, event) -> None:
         if event.is_directory:
             return
         if event.src_path.endswith(".pdf"):
@@ -21,7 +21,7 @@ class PDFHandler(FileSystemEventHandler):
             print(output)
 
 
-def watch():
+def watch() -> None:
     supervisor = Supervisor()
     handler = PDFHandler(supervisor)
     observer = Observer()

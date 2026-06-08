@@ -20,7 +20,7 @@ class Vault:
             self._file_cache[path] = path.read_text() if path.exists() else ""
         return self._file_cache[path]
 
-    def invalidate_cache(self, path: Path | None = None):
+    def invalidate_cache(self, path: Path | None = None) -> None:
         if path is None:
             self._file_cache.clear()
         else:
@@ -34,12 +34,12 @@ class Vault:
         data = json.loads(settings.catalog_json.read_text())
         return [CatalogEntry(**entry) for entry in data]
 
-    def save_catalog(self, entries: list[CatalogEntry]):
+    def save_catalog(self, entries: list[CatalogEntry]) -> None:
         data = [entry.model_dump() for entry in entries]
         settings.catalog_json.write_text(json.dumps(data, indent=2, ensure_ascii=False))
         self._regenerate_catalog_md(entries)
 
-    def mark_ingested(self, filename: str):
+    def mark_ingested(self, filename: str) -> None:
         catalog = self.load_catalog()
         for entry in catalog:
             if entry.filename == filename:
@@ -48,7 +48,7 @@ class Vault:
                 break
         self.save_catalog(catalog)
 
-    def _regenerate_catalog_md(self, entries: list[CatalogEntry]):
+    def _regenerate_catalog_md(self, entries: list[CatalogEntry]) -> None:
         extracted_count = sum(1 for e in entries if e.extracted)
         ingested_count = sum(1 for e in entries if e.ingested)
 
@@ -144,7 +144,7 @@ class Vault:
             content=post.content,
         )
 
-    def save_article(self, subdir: str, filename: str, content: str):
+    def save_article(self, subdir: str, filename: str, content: str) -> None:
         path = settings.wiki_dir / subdir / filename
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
@@ -164,7 +164,7 @@ class Vault:
 
     # --- Wiki index files ---
 
-    def regenerate_wiki_index(self):
+    def regenerate_wiki_index(self) -> None:
         summaries = self.list_summaries()
         concepts = self.list_concepts()
         connections = self.list_connections()
@@ -191,14 +191,14 @@ class Vault:
 
         settings.wiki_index.write_text("\n".join(lines) + "\n")
 
-    def update_sources_file(self, filename: str, title: str):
+    def update_sources_file(self, filename: str, title: str) -> None:
         sources_path = settings.wiki_sources
         content = sources_path.read_text() if sources_path.exists() else "---\ntitle: Sources\n---\n"
         if filename not in content:
             content += f"\n- **{title}** — `{filename}`"
             sources_path.write_text(content)
 
-    def regenerate_glossary(self):
+    def regenerate_glossary(self) -> None:
         concepts = self.list_concepts()
         lines = [
             "---",

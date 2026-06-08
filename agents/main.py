@@ -3,7 +3,7 @@ import sys
 from agents.supervisor.graph import Supervisor
 
 
-def main():
+def main() -> None:
     args = sys.argv[1:]
 
     if not args:
