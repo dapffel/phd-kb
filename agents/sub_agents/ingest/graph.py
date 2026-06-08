@@ -110,10 +110,23 @@ class IngestAgent(BaseAgent[IngestState]):
         return {"detected_concepts": new_concepts, "result": result}
 
     def _parse_fidelity(self, raw: str) -> FidelityResult:
-        verified = len(re.findall(r"\bVERIFIED\b", raw, re.IGNORECASE))
-        distorted = len(re.findall(r"\bDISTORTED\b", raw, re.IGNORECASE))
-        unsupported = len(re.findall(r"\bUNSUPPORTED\b", raw, re.IGNORECASE))
-        missing = len(re.findall(r"\bMISSING.ATTRIBUTION\b", raw, re.IGNORECASE))
+        def _header_int(label: str) -> int | None:
+            m = re.search(rf"\*?\*?{label}\*?\*?\s*[:\|]\s*(\d+)", raw, re.IGNORECASE)
+            return int(m.group(1)) if m else None
+
+        verified = _header_int("Verified")
+        distorted = _header_int("Distorted")
+        unsupported = _header_int("Unsupported")
+        missing = _header_int("Missing.attribution")
+
+        if verified is None:
+            verified = len(re.findall(r"\bVERIFIED\b", raw, re.IGNORECASE))
+        if distorted is None:
+            distorted = len(re.findall(r"\bDISTORTED\b", raw, re.IGNORECASE))
+        if unsupported is None:
+            unsupported = len(re.findall(r"\bUNSUPPORTED\b", raw, re.IGNORECASE))
+        if missing is None:
+            missing = len(re.findall(r"\bMISSING.ATTRIBUTION\b", raw, re.IGNORECASE))
 
         header_match = re.search(r"Claims\s*checked\D*(\d+)", raw, re.IGNORECASE)
         if header_match:

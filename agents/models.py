@@ -29,6 +29,8 @@ class FidelityResult(BaseModel):
 
     @property
     def passed(self) -> bool:
+        if self.claims_checked == 0 and self.issues:
+            return False
         return self.distorted == 0 and self.unsupported == 0
 
 
