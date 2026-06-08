@@ -1,5 +1,7 @@
+import frontmatter
 from langgraph.graph import StateGraph, END
 
+from agents.config import settings
 from agents.models import StatusState
 from agents.sub_agents.base import BaseAgent
 
@@ -31,6 +33,13 @@ class StatusAgent(BaseAgent[StatusState]):
             "",
         ]
 
+        chapters = self._research_chapters()
+        if chapters:
+            lines.append("**Research chapters**:")
+            for name, status, updated in chapters:
+                lines.append(f"  - {name} | status: {status} | updated: {updated}")
+            lines.append("")
+
         if stats.broken_links:
             lines.append(f"**Broken links**: {len(stats.broken_links)}")
             for link in stats.broken_links[:10]:
@@ -53,3 +62,21 @@ class StatusAgent(BaseAgent[StatusState]):
                 lines.append(f"  - {f}")
 
         return {"report": "\n".join(lines)}
+
+    def _research_chapters(self) -> list[tuple[str, str, str]]:
+        research_dir = settings.vault_root / "research"
+        if not research_dir.exists():
+            return []
+        chapters = []
+        for path in sorted(research_dir.glob("*.md")):
+            if path.name.startswith("_"):
+                continue
+            try:
+                post = frontmatter.load(str(path))
+                status = post.get("status", "unknown")
+                updated = str(post.get("updated", "—"))
+            except Exception:
+                status = "unknown"
+                updated = "—"
+            chapters.append((path.stem, status, updated))
+        return chapters
