@@ -5,7 +5,7 @@ from langgraph.graph import StateGraph, END
 
 from agents.config import settings
 from agents.models import (
-    IngestState, SynthesizeState, EvalState, QueryState,
+    CompileState, IngestState, SynthesizeState, EvalState, QueryState,
     SupervisorState,
 )
 from agents.vault import Vault
@@ -30,6 +30,7 @@ from agents.sub_agents.query.graph import QueryAgent
 class Supervisor:
     def __init__(self):
         self.vault = Vault()
+        self.dry_run = False
 
     def build_graph(self) -> StateGraph:
         g = StateGraph(SupervisorState)
@@ -38,7 +39,8 @@ class Supervisor:
         g.add_edge("route", END)
         return g
 
-    def run(self, command: str, args: str = "") -> str:
+    def run(self, command: str, args: str = "", dry_run: bool = False) -> str:
+        self.dry_run = dry_run
         graph = self.build_graph().compile()
         result = graph.invoke({"command": command, "args": args})
         if isinstance(result, dict):
@@ -126,7 +128,7 @@ class Supervisor:
 
     def _ingest_all(self, args: str) -> str:
         uncataloged = self.vault.unprocessed_pdfs()
-        if uncataloged:
+        if uncataloged and not self.dry_run:
             self._catalog("")
 
         uningested = self.vault.uningested_papers()
@@ -136,10 +138,25 @@ class Supervisor:
         if not targets:
             return "All sources already ingested."
 
+        if self.dry_run:
+            lines = [f"[dry-run] Would ingest {len(targets)} sources:"]
+            lines += [f"  - {t}" for t in targets]
+            return "\n".join(lines)
+
         results = [self._ingest(filename) for filename in targets]
         return "\n\n".join(results)
 
     def _compile_concepts(self, args: str) -> str:
+        if self.dry_run:
+            agent = CompileConceptsAgent(self.vault)
+            detect_result = agent.detect(CompileState())
+            candidates = detect_result.get("concept_names", [])
+            if not candidates:
+                return "[dry-run] No new concepts to compile."
+            lines = [f"[dry-run] Would compile {len(candidates)} concepts:"]
+            lines += [f"  - {c}" for c in candidates]
+            return "\n".join(lines)
+
         result = CompileConceptsAgent(self.vault).run()
         return self._with_commit_suggestion(
             result.report,
@@ -170,6 +187,12 @@ class Supervisor:
 
     def _eval_all(self, args: str) -> str:
         articles = self.vault.list_summaries() + self.vault.list_concepts()
+
+        if self.dry_run:
+            lines = [f"[dry-run] Would evaluate {len(articles)} articles:"]
+            lines += [f"  - {p.name}" for p in articles]
+            return "\n".join(lines)
+
         per_article: list[dict] = []
 
         for path in articles:

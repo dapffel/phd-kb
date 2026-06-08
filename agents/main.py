@@ -20,9 +20,11 @@ def main():
         watch()
         return
 
-    rest = " ".join(args[1:])
+    dry_run = "--dry-run" in args
+    rest_parts = [a for a in args[1:] if a != "--dry-run"]
+    rest = " ".join(rest_parts)
     supervisor = Supervisor()
-    output = supervisor.run(command, rest)
+    output = supervisor.run(command, rest, dry_run=dry_run)
     print(output)
 
 
