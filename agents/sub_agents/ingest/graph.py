@@ -110,26 +110,47 @@ class IngestAgent(BaseAgent[IngestState]):
         return {"detected_concepts": new_concepts, "result": result}
 
     def _parse_fidelity(self, raw: str) -> FidelityResult:
-        verified = len(re.findall(r"VERIFIED", raw, re.IGNORECASE))
-        distorted = len(re.findall(r"DISTORTED", raw, re.IGNORECASE))
-        unsupported = len(re.findall(r"UNSUPPORTED", raw, re.IGNORECASE))
-        missing = len(re.findall(r"MISSING.ATTRIBUTION", raw, re.IGNORECASE))
+        verified = len(re.findall(r"\bVERIFIED\b", raw, re.IGNORECASE))
+        distorted = len(re.findall(r"\bDISTORTED\b", raw, re.IGNORECASE))
+        unsupported = len(re.findall(r"\bUNSUPPORTED\b", raw, re.IGNORECASE))
+        missing = len(re.findall(r"\bMISSING.ATTRIBUTION\b", raw, re.IGNORECASE))
+
+        header_match = re.search(r"Claims\s*checked\D*(\d+)", raw, re.IGNORECASE)
+        if header_match:
+            header_total = int(header_match.group(1))
+        else:
+            header_total = None
 
         issues = []
         for match in re.finditer(
-            r"#### Issue \d+[^\n]*\n(.*?)(?=#### Issue|\Z)", raw, re.DOTALL
+            r"(?:####?\s*Issue\s*\d+|(?:^|\n)\d+\.\s*\*\*)[^\n]*\n(.*?)(?=(?:####?\s*Issue|(?:^|\n)\d+\.\s*\*\*)|\Z)",
+            raw, re.DOTALL,
         ):
             block = match.group(1)
-            claim = re.search(r"\*\*Claim.*?\*\*:\s*(.+)", block)
-            classification = re.search(r"\*\*Classification\*\*:\s*(.+)", block)
+            claim = re.search(r"\*\*Claim[^*]*\*\*[:\s]*(.+)", block)
+            classification = re.search(r"\*\*Classification\*\*[:\s]*(.+)", block)
             if claim:
                 issues.append(FidelityIssue(
-                    claim=claim.group(1).strip(),
+                    claim=claim.group(1).strip().strip('"'),
                     classification=classification.group(1).strip() if classification else "unknown",
                 ))
 
+        total = verified + distorted + unsupported + missing
+        if header_total and header_total > total:
+            total = header_total
+
+        if total == 0:
+            return FidelityResult(
+                claims_checked=0,
+                verified=0,
+                issues=[FidelityIssue(
+                    claim="Fidelity check produced unparseable output",
+                    classification="RETRY",
+                )],
+            )
+
         return FidelityResult(
-            claims_checked=verified + distorted + unsupported + missing,
+            claims_checked=total,
             verified=verified,
             distorted=distorted,
             unsupported=unsupported,

@@ -79,12 +79,24 @@ class Vault:
 
     def extract_pdf(self, filename: str) -> str:
         pdf_path = settings.papers_dir / filename
-        doc = fitz.open(str(pdf_path))
+        if not pdf_path.exists():
+            raise FileNotFoundError(f"PDF not found: {pdf_path}")
+
+        try:
+            doc = fitz.open(str(pdf_path))
+        except Exception as e:
+            raise ValueError(f"Cannot open PDF '{filename}': {e}") from e
+
         pages = []
         for i, page in enumerate(doc):
             text = page.get_text()
             if text.strip():
                 pages.append(f"--- Page {i + 1} ---\n{text}")
+        doc.close()
+
+        if not pages:
+            raise ValueError(f"PDF '{filename}' produced no extractable text (scanned image?)")
+
         return "\n\n".join(pages)
 
     def save_extract(self, filename: str, content: str) -> Path:
