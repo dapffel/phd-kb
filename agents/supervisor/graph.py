@@ -125,10 +125,13 @@ class Supervisor:
         return self._with_commit_suggestion(output, f"ingest: add {args.rsplit('.', 1)[0]}")
 
     def _ingest_all(self, args: str) -> str:
-        unprocessed = self.vault.unprocessed_pdfs()
+        uncataloged = self.vault.unprocessed_pdfs()
+        if uncataloged:
+            self._catalog("")
+
         uningested = self.vault.uningested_papers()
         web = self.vault.unprocessed_web()
-        targets = list(dict.fromkeys(unprocessed + uningested + web))
+        targets = list(dict.fromkeys(uningested + web))
 
         if not targets:
             return "All sources already ingested."

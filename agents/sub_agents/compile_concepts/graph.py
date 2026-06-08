@@ -45,10 +45,11 @@ class CompileConceptsAgent(BaseAgent[CompileState]):
         summaries = self.vault.list_summaries()
         created = []
 
+        summary_contents = [(path, path.read_text()) for path in summaries]
         for concept in state_get(state, "concept_names", []):
             relevant = [
-                path.read_text() for path in summaries
-                if f"[[{concept}]]" in path.read_text()
+                content for path, content in summary_contents
+                if f"[[{concept}]]" in content
             ]
             if not relevant:
                 continue

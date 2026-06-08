@@ -48,7 +48,7 @@ def init_vault() -> tuple[str, bool]:
             "Missing prompt templates were not recreated from stubs: "
             + ", ".join(missing_prompts)
         )
-        lines.append("Restore them from AGENTS.md or version control to avoid weakening generation quality.")
+        lines.append("Restore them from CLAUDE.md or version control to avoid weakening generation quality.")
 
     return "\n".join(lines), bool(created)
 
@@ -210,8 +210,10 @@ def _chapter_template(title: str) -> str:
 
 def _relevant_wiki_text(vault: Vault, topic: str) -> list[str]:
     all_files = vault.list_summaries() + vault.list_concepts() + vault.list_connections()
-    return [
-        path.read_text()
-        for path in all_files
-        if topic.lower() in path.read_text().lower() or topic.lower() in path.stem.lower()
-    ]
+    topic_lower = topic.lower()
+    relevant = []
+    for path in all_files:
+        content = path.read_text()
+        if topic_lower in content.lower() or topic_lower in path.stem.lower():
+            relevant.append(content)
+    return relevant

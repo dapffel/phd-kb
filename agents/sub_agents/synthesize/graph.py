@@ -22,16 +22,18 @@ class SynthesizeAgent(BaseAgent[SynthesizeState]):
 
     def gather(self, state: SynthesizeState) -> dict:
         topic = state_get(state, "topic", "")
+        topic_lower = topic.lower()
         all_files = (
             self.vault.list_summaries()
             + self.vault.list_concepts()
             + self.vault.list_connections()
         )
 
-        relevant = [
-            path.read_text() for path in all_files
-            if topic.lower() in path.read_text().lower() or topic.lower() in path.stem.lower()
-        ]
+        relevant = []
+        for path in all_files:
+            content = path.read_text()
+            if topic_lower in content.lower() or topic_lower in path.stem.lower():
+                relevant.append(content)
         return {"relevant_articles": relevant}
 
     def synthesize(self, state: SynthesizeState) -> dict:
