@@ -1,4 +1,6 @@
+import os
 from pathlib import Path
+
 from pydantic_settings import BaseSettings
 
 
@@ -10,6 +12,9 @@ class Settings(BaseSettings):
     temperature: float = 0.0
     max_tokens: int = 8192
     max_fidelity_attempts: int = 3
+    langsmith_tracing: bool = False
+    langsmith_api_key: str = ""
+    langsmith_project: str = "phd-kb"
 
     @property
     def raw_dir(self) -> Path:
@@ -59,3 +64,14 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def configure_tracing() -> bool:
+    if not settings.langsmith_tracing:
+        return False
+    if not settings.langsmith_api_key:
+        return False
+    os.environ.setdefault("LANGSMITH_TRACING", "true")
+    os.environ.setdefault("LANGSMITH_API_KEY", settings.langsmith_api_key)
+    os.environ.setdefault("LANGSMITH_PROJECT", settings.langsmith_project)
+    return True

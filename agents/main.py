@@ -1,5 +1,6 @@
 import sys
 
+from agents.config import configure_tracing
 from agents.supervisor.graph import Supervisor
 
 
@@ -13,6 +14,7 @@ def main() -> None:
         print("          eval-all, lint, query, update-chapter, watch")
         sys.exit(1)
 
+    tracing = configure_tracing()
     command = args[0]
 
     if command == "watch":
@@ -26,6 +28,8 @@ def main() -> None:
     supervisor = Supervisor()
     output = supervisor.run(command, rest, dry_run=dry_run)
     print(output)
+    if tracing:
+        print("\n[LangSmith] Trace available at https://smith.langchain.com")
 
 
 if __name__ == "__main__":
