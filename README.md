@@ -4,7 +4,7 @@
 
 A structured Obsidian vault for managing PhD research literature. You add papers, tell your LLM to process them, and it builds an interlinked wiki of summaries, concepts, and cross-source syntheses.
 
-The LLM follows instructions defined in `CLAUDE.md` and `AGENTS.md` — no custom code or plugins required. Power users can optionally install a Python CLI (`kb`) for batch processing and automation.
+The LLM follows instructions defined in `CLAUDE.md` and `AGENTS.md` — no custom code or plugins required. You can also optionally install a Python CLI (`kb`) for batch processing and automation.
 
 New here? Start with [QUICKSTART.md](QUICKSTART.md) for the shortest first-paper workflow.
 
@@ -78,7 +78,7 @@ status               — see where things stand
 
 Stronger models are recommended for `ingest`, `eval`, and `synthesize`, because those workflows require careful source reading and fidelity checks.
 
-### Alternative: CLI-based workflow (power users)
+### Alternative: CLI-based workflow
 
 If you prefer shell commands over LLM prompts, install the agent system:
 
