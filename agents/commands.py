@@ -22,7 +22,7 @@ def init_vault() -> tuple[str, bool]:
     dirs = [
         "raw/papers", "raw/notes", "raw/web", "raw/images",
         "wiki/summaries", "wiki/concepts", "wiki/connections",
-        "research", "outputs/reports", "outputs/evals",
+        "research/templates", "outputs/reports", "outputs/evals",
         "outputs/slides", "outputs/figures", "prompts",
     ]
     for dirname in dirs:
@@ -173,13 +173,19 @@ def _starter_files() -> dict[Path, str]:
         settings.wiki_glossary: "---\ntitle: \"Glossary\"\nupdated: \n---\n\n## Terms\n",
         settings.vault_root / ".gitignore": (
             "# Obsidian temporary files\n.obsidian/workspace.json\n"
-            ".obsidian/workspace-mobile.json\n.trash/\n\n# OS files\n.DS_Store\nThumbs.db\n\n"
-            "# Large binary files\nraw/papers/*.pdf\nraw/web/*.pdf\n\nresearch/\n"
+            ".obsidian/workspace-mobile.json\n.trash/\n\n"
+            "# OS files\n.DS_Store\nThumbs.db\n\n"
+            "# Python\n__pycache__/\n*.pyc\n.claude/\n*.egg-info/\n.venv/\n\n"
+            "# Large binary files\nraw/papers/*.pdf\nraw/web/*.pdf\n\n"
+            "# Obsidian plugin cache\n.obsidian/plugins/*/data.json\n\n"
+            "# Research chapters — excluded until you're ready to commit them.\n"
+            "research/*\n!research/.gitkeep\n!research/README.md\n"
+            "!research/templates/\n!research/templates/*.md\n"
         ),
-        settings.vault_root / "research" / "chapter-1-current-state.md": _chapter_template("Chapter 1: Current State of the Field"),
-        settings.vault_root / "research" / "chapter-2-methodology.md": _chapter_template("Chapter 2: Methodology"),
-        settings.vault_root / "research" / "chapter-3-findings.md": _chapter_template("Chapter 3: Findings"),
-        settings.vault_root / "research" / "_research-index.md": (
+        settings.vault_root / "research" / "templates" / "chapter-1-current-state.md": _chapter_template("Chapter 1: Current State of the Field"),
+        settings.vault_root / "research" / "templates" / "chapter-2-methodology.md": _chapter_template("Chapter 2: Methodology"),
+        settings.vault_root / "research" / "templates" / "chapter-3-findings.md": _chapter_template("Chapter 3: Findings"),
+        settings.vault_root / "research" / "templates" / "_research-index.md": (
             "---\ntitle: \"Research Overview\"\nupdated: \n---\n\n"
             "## Dissertation Structure\n\n"
             "| Chapter | Title | Status | Last Updated |\n"
