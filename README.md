@@ -4,7 +4,7 @@
 
 A structured Obsidian vault for managing PhD research literature. You add papers, tell your LLM to process them, and it builds an interlinked wiki of summaries, concepts, and cross-source syntheses.
 
-The LLM follows instructions defined in `CLAUDE.md` and `AGENTS.md` — no custom code or plugins required.
+The LLM follows instructions defined in `CLAUDE.md` and `AGENTS.md` — no custom code or plugins required. Power users can optionally install a Python CLI (`kb`) for batch processing and automation.
 
 New here? Start with [QUICKSTART.md](QUICKSTART.md) for the shortest first-paper workflow.
 
@@ -12,6 +12,7 @@ New here? Start with [QUICKSTART.md](QUICKSTART.md) for the shortest first-paper
 
 - **Obsidian** (free) — for browsing and navigating the wiki
 - **An LLM with filesystem access** — it needs to read your PDFs and write markdown files
+- **Optional: Python 3.11+** — only needed if you want the `kb` CLI for automated pipelines
 
 Tested with: **Claude Code**, **OpenAI Codex**, **Cursor**, **GitHub Copilot** (IDE). These can read/write local files directly.
 
@@ -77,6 +78,36 @@ status               — see where things stand
 
 Stronger models are recommended for `ingest`, `eval`, and `synthesize`, because those workflows require careful source reading and fidelity checks.
 
+### Alternative: CLI-based workflow (power users)
+
+If you prefer shell commands over LLM prompts, install the agent system:
+
+```bash
+pip install -e ".[anthropic]"   # or .[openai], .[google], .[mistral]
+```
+
+Then use the `kb` CLI directly in your terminal:
+
+```bash
+kb catalog
+kb ingest smith2024-habitat-loss.pdf
+kb ingest-all
+kb compile-concepts
+kb synthesize "habitat loss"
+kb status
+kb lint
+kb graph ingest              # print agent DAG as Mermaid diagram
+```
+
+The CLI runs the same pipelines as the prompt-based workflow. Configure the LLM provider via environment variables:
+
+```bash
+export KB_PROVIDER=anthropic     # or openai, google, mistral
+export KB_MODEL=claude-sonnet-4-20250514
+```
+
+See `CLAUDE.md` for the full command reference.
+
 ## Structure
 
 ```
@@ -88,7 +119,9 @@ phd-kb/
 ├── wiki/connections/  — cross-source syntheses (LLM-generated)
 ├── research/          — your dissertation chapters and tracked templates
 ├── prompts/           — prompt templates (the logic driving generation)
-└── outputs/           — reports, evals, slides
+├── outputs/           — reports, evals, slides
+├── agents/            — optional: LangGraph agent system (kb CLI)
+└── tests/             — optional: test suite for agents/
 ```
 
 Each major folder includes a short `README.md` explaining what belongs there.

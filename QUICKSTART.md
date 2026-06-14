@@ -69,3 +69,14 @@ lint
 ```
 
 Use a stronger model for `ingest`, `eval`, and `synthesize` when possible.
+
+## Optional: Install the CLI
+
+If you prefer command-line automation over prompting the LLM directly:
+
+```bash
+pip install -e ".[anthropic]"
+kb status
+```
+
+The `kb` CLI runs the same workflows as the prompts above, but as a local pipeline. See [README.md](README.md) for the full command list.

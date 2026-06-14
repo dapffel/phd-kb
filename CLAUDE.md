@@ -48,6 +48,9 @@ phd-kb/
 │   ├── synthesize.md
 │   └── eval-source.md
 │
+├── agents/                       # Optional: LangGraph agent system (kb CLI)
+├── tests/                        # Optional: test suite for agents/
+├── pyproject.toml                # Optional: Python project config for kb CLI
 ├── CLAUDE.md                     # This file — canonical LLM instructions
 ├── AGENTS.md                     # Pointer for tools that auto-read AGENTS.md
 └── .gitignore
@@ -720,3 +723,50 @@ From that point on, The LLM should suggest commits after `update-chapter` as wel
 - **Wikilinks**: always use the filename without extension, lowercase-hyphenated. Be consistent — if you call it `[[attention-mechanisms]]` once, always use that exact string.
 - **Frontmatter**: every file in `wiki/` and `research/` must have YAML frontmatter.
 - **Commit messages**: use the prefixed format described in Git Workflow above.
+
+---
+
+## Agent System (Optional)
+
+The `agents/` directory contains a LangGraph-based multi-agent system that implements the same workflows described above as a Python CLI called `kb`. This is entirely optional — the prompt-based workflow (telling the LLM directly) works without installing anything.
+
+### When to use it
+
+The `kb` CLI is useful for batch processing, automation, or users who prefer shell commands over LLM prompts. It runs the same pipelines (ingest, compile, synthesize, eval, lint) programmatically.
+
+### Installation
+
+```bash
+pip install -e ".[anthropic]"   # or .[openai], .[google], .[mistral]
+```
+
+### CLI commands
+
+```bash
+kb init                          # scaffold vault structure
+kb catalog                       # register new PDFs
+kb ingest <filename>             # ingest a single source
+kb ingest-all                    # ingest all unprocessed sources
+kb compile-concepts              # generate concept articles
+kb synthesize <topic>            # cross-source synthesis
+kb eval <filename>               # deep fidelity check
+kb eval-all                      # evaluate entire wiki
+kb lint                          # wiki health check
+kb query <question>              # answer from wiki content
+kb status                        # dashboard
+kb slides <topic>                # generate Marp slide deck
+kb graph <agent>                 # print agent DAG as Mermaid
+kb update-chapter <name>         # suggest chapter updates
+```
+
+### Configuration
+
+Set via environment variables with `KB_` prefix:
+
+```bash
+export KB_PROVIDER=anthropic     # or openai, google, mistral
+export KB_MODEL=claude-sonnet-4-20250514
+export KB_MODEL_STRONG=claude-opus-4-20250514
+```
+
+The agent system does not change any of the rules, formats, or conventions defined above. It simply automates them.
