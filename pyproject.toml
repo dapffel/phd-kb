@@ -1,0 +1,24 @@
+[project]
+name = "phd-kb-agents"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.2.0",
+    "langchain-core>=0.3.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "watchdog>=4.0.0",
+    "pymupdf>=1.24.0",
+    "python-frontmatter>=1.1.0",
+]
+
+[project.optional-dependencies]
+anthropic = ["langchain-anthropic>=0.3.0"]
+openai = ["langchain-openai>=0.3.0"]
+google = ["langchain-google-genai>=2.0.0"]
+mistral = ["langchain-mistralai>=0.2.0"]
+tracing = ["langsmith>=0.1.0"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[project.scripts]
+kb = "agents.main:main"
