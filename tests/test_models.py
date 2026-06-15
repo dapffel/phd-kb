@@ -1,4 +1,4 @@
-from agents.models import FidelityIssue, FidelityResult, CatalogEntry, WikiStats
+from agents.models import FidelityIssue, FidelityResult, CatalogEntry, Reference, WikiStats
 
 
 class TestFidelityResult:
@@ -50,6 +50,31 @@ class TestCatalogEntry:
         assert data["extracted"] is True
         e2 = CatalogEntry.model_validate(data)
         assert e2.title == "T"
+
+
+class TestReference:
+    def test_defaults(self):
+        r = Reference(author="Smith", year=2020)
+        assert r.title == ""
+
+    def test_serialization_roundtrip(self):
+        r = Reference(author="Araújo", year=2006, title="Five challenges for SDMs")
+        data = r.model_dump()
+        r2 = Reference.model_validate(data)
+        assert r2.author == "Araújo"
+        assert r2.year == 2006
+        assert r2.title == "Five challenges for SDMs"
+
+    def test_list_serialization(self):
+        refs = [
+            Reference(author="Elith", year=2009, title="SDM review"),
+            Reference(author="Thuiller", year=2005),
+        ]
+        data = [r.model_dump() for r in refs]
+        restored = [Reference.model_validate(d) for d in data]
+        assert len(restored) == 2
+        assert restored[0].author == "Elith"
+        assert restored[1].title == ""
 
 
 class TestWikiStats:
