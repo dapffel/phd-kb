@@ -10,10 +10,13 @@ from agents.models import (
 )
 from agents.vault import Vault
 from agents.commands import (
+    backfill_references,
+    build_citation_network,
     catalog_update,
     create_slides,
     find_catalog,
     init_vault,
+    suggest_reading,
     update_chapter,
 )
 from agents.git_ops import has_changes
@@ -67,6 +70,9 @@ class Supervisor:
             "lint": self._lint,
             "query": self._query,
             "update-chapter": self._update_chapter,
+            "references": self._references,
+            "suggest": self._suggest,
+            "backfill-references": self._backfill_references,
         }.get(command)
 
         if not handler:
@@ -283,3 +289,14 @@ class Supervisor:
 
     def _update_chapter(self, args: str) -> str:
         return update_chapter(self.vault, args)
+
+    def _references(self, args: str) -> str:
+        output = build_citation_network(self.vault)
+        return self._with_commit_suggestion(output, "references: build citation network")
+
+    def _suggest(self, args: str) -> str:
+        return suggest_reading(self.vault)
+
+    def _backfill_references(self, args: str) -> str:
+        output = backfill_references(self.vault)
+        return self._with_commit_suggestion(output, "references: backfill existing summaries")
