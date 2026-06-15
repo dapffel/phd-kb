@@ -1,4 +1,6 @@
-from agents.models import FidelityResult
+from unittest import mock
+
+from agents.models import FidelityResult, IngestState, Reference
 from agents.sub_agents.ingest.graph import IngestAgent
 
 
@@ -76,6 +78,46 @@ VERIFIED: claim 2.
         r = self._parse(raw)
         assert len(r.issues) == 2
         assert r.passed is False
+
+
+class TestExtractReferences:
+    def _run(self, llm_response: str) -> dict:
+        agent = IngestAgent.__new__(IngestAgent)
+        state = IngestState(source_text="some paper text")
+        with mock.patch("agents.sub_agents.ingest.graph.invoke", return_value=llm_response):
+            with mock.patch("agents.sub_agents.ingest.graph.load_prompt", return_value="prompt"):
+                return agent.extract_references(state)
+
+    def test_valid_json(self):
+        raw = '[{"author": "Smith", "year": 2020, "title": "A paper"}]'
+        result = self._run(raw)
+        assert len(result["references"]) == 1
+        assert result["references"][0].author == "Smith"
+        assert result["references"][0].year == 2020
+
+    def test_multiple_refs(self):
+        raw = '[{"author": "Elith", "year": 2009, "title": "SDM"}, {"author": "Thuiller", "year": 2005, "title": "Plants"}]'
+        result = self._run(raw)
+        assert len(result["references"]) == 2
+
+    def test_invalid_json_returns_empty(self):
+        result = self._run("This is not JSON at all")
+        assert result["references"] == []
+
+    def test_markdown_fenced_json(self):
+        raw = '```json\n[{"author": "Smith", "year": 2020, "title": "Test"}]\n```'
+        result = self._run(raw)
+        assert len(result["references"]) == 1
+        assert result["references"][0].author == "Smith"
+
+    def test_empty_list(self):
+        result = self._run("[]")
+        assert result["references"] == []
+
+    def test_missing_fields_skipped(self):
+        raw = '[{"author": "Smith", "year": 2020}, {"badkey": "val"}]'
+        result = self._run(raw)
+        assert len(result["references"]) == 1
 
 
 class TestRouteFidelity:

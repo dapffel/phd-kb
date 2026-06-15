@@ -1,10 +1,12 @@
+import json
 import re
 
+import frontmatter
 from langgraph.graph import StateGraph, END
 
 from agents.config import settings
 from agents.llm import invoke, load_prompt
-from agents.models import FidelityIssue, FidelityResult, IngestResult, IngestState
+from agents.models import FidelityIssue, FidelityResult, IngestResult, IngestState, Reference
 from agents.sub_agents.base import BaseAgent
 
 
@@ -16,13 +18,15 @@ class IngestAgent(BaseAgent[IngestState]):
 
         g.add_node("extract", self.extract)
         g.add_node("compile", self.compile)
+        g.add_node("extract_references", self.extract_references)
         g.add_node("fidelity_check", self.fidelity_check)
         g.add_node("fix_summary", self.fix_summary)
         g.add_node("save", self.save)
 
         g.set_entry_point("extract")
         g.add_edge("extract", "compile")
-        g.add_edge("compile", "fidelity_check")
+        g.add_edge("compile", "extract_references")
+        g.add_edge("extract_references", "fidelity_check")
         g.add_conditional_edges("fidelity_check", self.route_fidelity)
         g.add_edge("fix_summary", "fidelity_check")
         g.add_edge("save", END)
@@ -61,6 +65,30 @@ class IngestAgent(BaseAgent[IngestState]):
         summary = invoke(system, state.source_text, strong=True)
         return {"summary": summary, "attempts": 1}
 
+    def extract_references(self, state: IngestState) -> dict:
+        system = load_prompt("extract-references.md")
+        text = state.source_text
+        if len(text) > 8000:
+            human = text[:2000] + "\n...\n" + text[-6000:]
+        else:
+            human = text
+
+        try:
+            raw = invoke(system, human)
+            raw = raw.strip()
+            if raw.startswith("```"):
+                raw = re.sub(r"^```\w*\n?", "", raw)
+                raw = re.sub(r"\n?```$", "", raw)
+            refs = json.loads(raw)
+            references = [
+                Reference(author=r["author"], year=int(r["year"]), title=r.get("title", ""))
+                for r in refs if isinstance(r, dict) and "author" in r and "year" in r
+            ]
+        except (json.JSONDecodeError, KeyError, ValueError):
+            references = []
+
+        return {"references": references}
+
     def fidelity_check(self, state: IngestState) -> dict:
         system = load_prompt("eval-source.md")
         human = (
@@ -90,7 +118,11 @@ class IngestAgent(BaseAgent[IngestState]):
     def save(self, state: IngestState) -> dict:
         filename = state.filename
         stem = filename.rsplit(".", 1)[0]
-        summary = state.summary
+
+        post = frontmatter.loads(state.summary)
+        if state.references:
+            post.metadata["references"] = [r.model_dump() for r in state.references]
+        summary = frontmatter.dumps(post)
 
         self.vault.save_article("summaries", f"{stem}.md", summary)
 
@@ -110,6 +142,7 @@ class IngestAgent(BaseAgent[IngestState]):
             summary_path=f"wiki/summaries/{stem}.md",
             fidelity=state.fidelity,
             detected_concepts=new_concepts,
+            references=state.references,
             attempts=state.attempts,
         )
         return {"detected_concepts": new_concepts, "result": result}

@@ -1,9 +1,13 @@
+import json
 import re
 from datetime import date
 from pathlib import Path
 
+import frontmatter
+
 from agents.config import settings
 from agents.llm import invoke, load_prompt
+from agents.models import CatalogEntry, Reference
 from agents.vault import Vault
 
 
@@ -223,3 +227,228 @@ def _relevant_wiki_text(vault: Vault, topic: str) -> list[str]:
         if topic_lower in content.lower() or topic_lower in path.stem.lower():
             relevant.append(content)
     return relevant
+
+
+def match_reference_to_catalog(
+    ref: dict, catalog: list[CatalogEntry]
+) -> CatalogEntry | None:
+    ref_author = ref.get("author", "").lower().strip()
+    ref_year = ref.get("year", 0)
+    if not ref_author or not ref_year:
+        return None
+
+    for entry in catalog:
+        if entry.year == ref_year and entry.authors and entry.authors[0].lower() == ref_author:
+            return entry
+
+    for entry in catalog:
+        if entry.year == ref_year and any(a.lower() == ref_author for a in entry.authors):
+            return entry
+
+    return None
+
+
+def build_citation_network(vault: Vault) -> str:
+    catalog = vault.load_catalog()
+    summaries = vault.list_summaries()
+
+    cited_by: dict[str, list[str]] = {}
+    external_counts: dict[tuple[str, int, str], list[str]] = {}
+
+    for path in summaries:
+        post = frontmatter.load(str(path))
+        refs = post.get("references", [])
+        source_stem = path.stem
+
+        for ref in refs:
+            if not isinstance(ref, dict):
+                continue
+            match = match_reference_to_catalog(ref, catalog)
+            if match:
+                matched_stem = match.filename.rsplit(".", 1)[0]
+                if matched_stem != source_stem:
+                    cited_by.setdefault(matched_stem, []).append(source_stem)
+            else:
+                key = (
+                    ref.get("author", "").strip(),
+                    ref.get("year", 0),
+                    ref.get("title", "").strip()[:80],
+                )
+                if key[0] and key[1]:
+                    external_counts.setdefault(key, []).append(source_stem)
+
+    total_refs = sum(
+        len(frontmatter.load(str(p)).get("references", []))
+        for p in summaries
+    )
+    cross_refs = sum(len(citers) for citers in cited_by.values())
+
+    most_cited = sorted(cited_by.items(), key=lambda x: len(x[1]), reverse=True)
+
+    lines = [
+        "---",
+        'title: "Citation Network"',
+        f"created: {date.today().isoformat()}",
+        f"updated: {date.today().isoformat()}",
+        "type: connection",
+        "sources: []",
+        "---",
+        "",
+        "## Overview",
+        "",
+        f"{len(summaries)} papers in vault. {total_refs} total references extracted. "
+        f"{cross_refs} cross-citations between vault papers.",
+        "",
+        "## Most Cited Within Vault",
+        "",
+        "| Paper | Cited by | Count |",
+        "|-------|----------|-------|",
+    ]
+    for stem, citers in most_cited:
+        citer_links = ", ".join(f"[[{c}]]" for c in citers[:5])
+        if len(citers) > 5:
+            citer_links += f" +{len(citers) - 5} more"
+        lines.append(f"| [[{stem}]] | {citer_links} | {len(citers)} |")
+
+    lines += [
+        "",
+        "## Citation Edges",
+        "",
+    ]
+    for path in summaries:
+        post = frontmatter.load(str(path))
+        refs = post.get("references", [])
+        matched = []
+        for ref in refs:
+            if not isinstance(ref, dict):
+                continue
+            m = match_reference_to_catalog(ref, catalog)
+            if m:
+                matched_stem = m.filename.rsplit(".", 1)[0]
+                if matched_stem != path.stem:
+                    matched.append(f"[[{matched_stem}]]")
+        if matched:
+            lines.append(f"- [[{path.stem}]] cites {', '.join(matched)}")
+
+    top_external = sorted(external_counts.items(), key=lambda x: len(x[1]), reverse=True)[:20]
+    if top_external:
+        lines += [
+            "",
+            "## Frequently Cited External Papers",
+            "",
+            "| # | Author | Year | Title | Cited by |",
+            "|---|--------|------|-------|----------|",
+        ]
+        for i, ((author, year, title), citers) in enumerate(top_external, 1):
+            lines.append(f"| {i} | {author} | {year} | {title} | {len(citers)} sources |")
+
+    vault.save_article("connections", "citation-network.md", "\n".join(lines) + "\n")
+    vault.regenerate_wiki_index()
+
+    summary_lines = [
+        f"{len(summaries)} papers, {total_refs} references, {cross_refs} cross-citations.",
+    ]
+    if most_cited:
+        top = most_cited[0]
+        summary_lines.append(f"Most cited: {top[0]} ({len(top[1])} citations).")
+    summary_lines.append("Saved to wiki/connections/citation-network.md")
+    return "\n".join(summary_lines)
+
+
+def suggest_reading(vault: Vault) -> str:
+    catalog = vault.load_catalog()
+    summaries = vault.list_summaries()
+
+    external_counts: dict[tuple[str, int], list[str]] = {}
+    best_title: dict[tuple[str, int], str] = {}
+
+    for path in summaries:
+        post = frontmatter.load(str(path))
+        refs = post.get("references", [])
+
+        for ref in refs:
+            if not isinstance(ref, dict):
+                continue
+            if match_reference_to_catalog(ref, catalog):
+                continue
+            author = ref.get("author", "").strip()
+            year = ref.get("year", 0)
+            title = ref.get("title", "").strip()
+            if not author or not year:
+                continue
+            key = (author.lower(), year)
+            external_counts.setdefault(key, []).append(path.stem)
+            if title and len(title) > len(best_title.get(key, "")):
+                best_title[key] = title
+
+    ranked = sorted(external_counts.items(), key=lambda x: len(x[1]), reverse=True)
+    ranked = [(k, citers) for k, citers in ranked if len(citers) >= 2]
+
+    if not ranked:
+        return "No frequently-cited external papers found (need >= 2 citations)."
+
+    lines = ["Papers frequently cited by your sources but not yet in the vault:", ""]
+    for i, ((author, year), citers) in enumerate(ranked[:20], 1):
+        title = best_title.get((author, year), "")
+        title_str = f' "{title}"' if title else ""
+        lines.append(f"  {i}. {author.title()} ({year}){title_str} — cited by {len(citers)} sources")
+
+    return "\n".join(lines)
+
+
+def backfill_references(vault: Vault) -> str:
+    summaries = vault.list_summaries()
+    updated = []
+
+    for path in summaries:
+        post = frontmatter.load(str(path))
+        if post.get("references"):
+            continue
+
+        sources = post.get("sources", [])
+        if not sources:
+            continue
+
+        source_filename = sources[0]
+        source_text = vault.read_extract(source_filename)
+        if not source_text:
+            web_path = settings.web_dir / source_filename
+            papers_path = settings.papers_dir / source_filename
+            if web_path.exists():
+                source_text = web_path.read_text()
+            elif papers_path.exists():
+                source_text = papers_path.read_text()
+        if not source_text:
+            continue
+
+        system = load_prompt("extract-references.md")
+        text = source_text
+        if len(text) > 8000:
+            human = text[:2000] + "\n...\n" + text[-6000:]
+        else:
+            human = text
+
+        try:
+            raw = invoke(system, human)
+            raw = raw.strip()
+            if raw.startswith("```"):
+                raw = re.sub(r"^```\w*\n?", "", raw)
+                raw = re.sub(r"\n?```$", "", raw)
+            refs = json.loads(raw)
+            references = [
+                Reference(author=r["author"], year=int(r["year"]), title=r.get("title", ""))
+                for r in refs if isinstance(r, dict) and "author" in r and "year" in r
+            ]
+        except (json.JSONDecodeError, KeyError, ValueError):
+            references = []
+
+        if not references:
+            continue
+
+        post.metadata["references"] = [r.model_dump() for r in references]
+        path.write_text(frontmatter.dumps(post))
+        updated.append(f"{path.stem} ({len(references)} refs)")
+
+    if not updated:
+        return "No summaries needed reference backfill."
+    return f"Backfilled references for {len(updated)} summaries:\n" + "\n".join(f"  - {u}" for u in updated)

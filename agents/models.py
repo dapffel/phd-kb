@@ -54,11 +54,18 @@ class WikiStats(BaseModel):
     missing_concepts: list[str] = Field(default_factory=list)
 
 
+class Reference(BaseModel):
+    author: str
+    year: int
+    title: str = ""
+
+
 class IngestResult(BaseModel):
     source_filename: str
     summary_path: str = ""
     fidelity: FidelityResult = Field(default_factory=FidelityResult)
     detected_concepts: list[str] = Field(default_factory=list)
+    references: list[Reference] = Field(default_factory=list)
     attempts: int = 0
 
 
@@ -91,6 +98,7 @@ class IngestState(BaseModel):
     fidelity: FidelityResult = Field(default_factory=FidelityResult)
     attempts: int = 0
     detected_concepts: list[str] = Field(default_factory=list)
+    references: list[Reference] = Field(default_factory=list)
     result: IngestResult | None = None
 
 

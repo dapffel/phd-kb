@@ -46,7 +46,8 @@ def main() -> None:
         print("Usage: kb <command> [args]")
         print("Commands: init, status, catalog, catalog-update, find, ingest,")
         print("          ingest-all, compile-concepts, synthesize, slides, eval,")
-        print("          eval-all, lint, query, update-chapter, watch, graph")
+        print("          eval-all, lint, query, update-chapter, references,")
+        print("          suggest, backfill-references, watch, graph")
         sys.exit(1)
 
     tracing = configure_tracing()
