@@ -199,6 +199,10 @@ phd-kb/
 - Citation matching uses first-author surname + year, which works well for small-to-medium vaults but may produce false matches in very large collections.
 - Web chat tools that require uploading documents may create privacy or copyright concerns. Prefer local filesystem agents when working with copyrighted papers.
 
+## Upgrading
+
+If you created your repo from an earlier version of this template, see [CHANGELOG.md](CHANGELOG.md) for what changed and step-by-step upgrade instructions.
+
 ## Full specification
 
 See `CLAUDE.md` for the complete workflow definitions, output formats, and rules. `AGENTS.md` is included for tools that look for that filename.
