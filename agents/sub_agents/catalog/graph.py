@@ -3,7 +3,7 @@ import json
 from langgraph.graph import StateGraph, END
 
 from agents.llm import invoke
-from agents.models import CatalogEntry, CatalogState
+from agents.models import CatalogEntry, CatalogResult, CatalogState
 from agents.sub_agents.base import BaseAgent
 
 
@@ -13,7 +13,7 @@ Return ONLY valid JSON (no markdown fencing):
 {
   "title": "Full paper title",
   "authors": ["LastName1", "LastName2"],
-  "year": 2024,
+  "year": 0,
   "keywords": ["keyword1", "keyword2", "keyword3"]
 }
 
@@ -38,10 +38,14 @@ class CatalogAgent(BaseAgent[CatalogState]):
     def process(self, state: CatalogState) -> dict:
         new_files = state.new_files
         if not new_files:
-            return {"entries_added": 0, "report": "No new PDFs found."}
+            result = CatalogResult(
+                total=len(self.vault.load_catalog()),
+                report="No new PDFs found.",
+            )
+            return {"entries_added": 0, "report": result.report, "result": result}
 
         catalog = self.vault.load_catalog()
-        added = 0
+        added_entries: list[CatalogEntry] = []
 
         for filename in new_files:
             text = self.vault.extract_pdf(filename)
@@ -62,10 +66,18 @@ class CatalogAgent(BaseAgent[CatalogState]):
                 ingested=self.vault.has_summary(filename),
             )
             catalog.append(entry)
-            added += 1
+            added_entries.append(entry)
 
         self.vault.save_catalog(catalog)
+        report = f"Added {len(added_entries)} new entries. Catalog total: {len(catalog)}."
+        result = CatalogResult(
+            entries_added=len(added_entries),
+            total=len(catalog),
+            entries=added_entries,
+            report=report,
+        )
         return {
-            "entries_added": added,
-            "report": f"Added {added} new entries. Catalog total: {len(catalog)}.",
+            "entries_added": len(added_entries),
+            "report": report,
+            "result": result,
         }

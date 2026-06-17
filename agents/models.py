@@ -60,6 +60,13 @@ class Reference(BaseModel):
     title: str = ""
 
 
+class CatalogResult(BaseModel):
+    entries_added: int = 0
+    total: int = 0
+    entries: list[CatalogEntry] = Field(default_factory=list)
+    report: str = ""
+
+
 class IngestResult(BaseModel):
     source_filename: str
     summary_path: str = ""
@@ -106,6 +113,7 @@ class CatalogState(BaseModel):
     new_files: list[str] = Field(default_factory=list)
     entries_added: int = 0
     report: str = ""
+    result: CatalogResult | None = None
 
 
 class CompileState(BaseModel):
