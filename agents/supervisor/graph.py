@@ -19,6 +19,7 @@ from agents.commands import (
     suggest_reading,
     update_chapter,
 )
+from agents.discounts import analyze_discounts
 from agents.git_ops import has_changes
 from agents.sub_agents.status.graph import StatusAgent
 from agents.sub_agents.catalog.graph import CatalogAgent
@@ -73,6 +74,7 @@ class Supervisor:
             "references": self._references,
             "suggest": self._suggest,
             "backfill-references": self._backfill_references,
+            "discounts": self._discounts,
         }.get(command)
 
         if not handler:
@@ -300,3 +302,6 @@ class Supervisor:
     def _backfill_references(self, args: str) -> str:
         output = backfill_references(self.vault)
         return self._with_commit_suggestion(output, "references: backfill existing summaries")
+
+    def _discounts(self, args: str) -> str:
+        return analyze_discounts()

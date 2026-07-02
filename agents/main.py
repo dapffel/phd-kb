@@ -47,7 +47,8 @@ def main() -> None:
         print("Commands: init, status, catalog, catalog-update, find, ingest,")
         print("          ingest-all, compile-ingredients, synthesize, slides,")
         print("          eval, eval-all, lint, query, update-plan, references,")
-        print("          suggest, backfill-references, watch, graph")
+        print("          suggest, backfill-references, discounts,")
+        print("          watch, graph")
         sys.exit(1)
 
     tracing = configure_tracing()

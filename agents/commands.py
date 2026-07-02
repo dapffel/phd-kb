@@ -24,7 +24,7 @@ PROMPT_FILES = [
 
 def init_vault() -> tuple[str, bool]:
     dirs = [
-        "raw/suppliers", "raw/recipes", "raw/notes", "raw/web", "raw/images",
+        "raw/suppliers", "raw/recipes", "raw/discounts", "raw/notes", "raw/web", "raw/images",
         "wiki/analyses", "wiki/ingredients", "wiki/insights",
         "planning", "outputs/reports", "outputs/evals",
         "outputs/slides", "outputs/figures", "prompts",
