@@ -1,6 +1,6 @@
-# phd-kb
+# Lila
 
-Personal PhD knowledge base for species distribution modelling literature. An Obsidian vault with an automated multi-agent system that ingests papers, builds a wiki, and checks factual accuracy.
+Operations intelligence for a pizza restaurant. An Obsidian vault with a multi-agent system that ingests supplier invoices, recipes, and operational data — then builds a wiki, runs fidelity checks, and generates analytics reports.
 
 ## Setup
 
@@ -8,7 +8,7 @@ Requires Python 3.11+.
 
 ```bash
 # Clone and enter the repo
-git clone <repo-url> && cd phd-kb
+git clone <repo-url> && cd lila
 
 # Create a virtual environment
 python -m venv .venv && source .venv/bin/activate
@@ -38,60 +38,117 @@ For OpenAI use `OPENAI_API_KEY`, for Google use `GOOGLE_API_KEY`, for Mistral us
 ### Initialize the vault
 
 ```bash
-kb init
+lila init
 ```
 
-This creates the full directory structure, prompt templates, and starter files. Run once.
+Creates the full directory structure, prompt templates, and planning files. Run once.
 
 ## Commands
 
 ```bash
-kb <command> [args]
+lila <command> [args]
 ```
+
+### Core workflow
 
 | Command | Description |
 |---------|-------------|
 | `init` | Scaffold vault structure and prompt templates |
-| `catalog` | Scan `raw/papers/` for new PDFs and extract metadata |
+| `catalog` | Scan `raw/suppliers/` for new files and extract metadata |
 | `catalog-update` | Sync extracted/ingested flags in the catalog |
-| `find <query>` | Search catalog by title, author, or keyword |
-| `ingest <file>` | Summarize a paper into the wiki (with fidelity check) |
-| `ingest-all` | Ingest all unprocessed papers |
-| `compile-concepts` | Generate concept articles from cross-referenced summaries |
+| `find <query>` | Search catalog by title, supplier, or keyword |
+| `ingest <file>` | Summarize a source into the wiki (with fidelity check) |
+| `ingest-all` | Ingest all unprocessed sources |
+| `compile-ingredients` | Generate ingredient/concept articles from cross-referenced analyses |
 | `synthesize <topic>` | Cross-source synthesis on a topic |
+| `status` | Dashboard of sources, articles, and wiki health |
+
+### Analysis & reports
+
+| Command | Description |
+|---------|-------------|
+| `discounts` | Analyze "on the house" discount patterns from xlsx files and generate an interactive HTML report |
 | `eval <file>` | Deep fidelity check of a wiki article against its sources |
 | `eval-all` | Eval every wiki article, produce roll-up report |
 | `lint` | Health check: broken links, orphans, stale articles, gaps |
 | `query <question>` | Answer a question grounded in wiki content |
-| `update-chapter <name>` | Suggest updates to a research chapter based on wiki |
 | `slides <topic>` | Generate a Marp slide deck from wiki content |
-| `status` | Dashboard of sources, articles, and wiki health |
-| `watch` | Watch `raw/papers/` and auto-ingest new PDFs |
+
+### Planning & references
+
+| Command | Description |
+|---------|-------------|
+| `update-plan <name>` | Suggest updates to a planning doc based on wiki content |
+| `references` | Build a citation network across vault sources |
+| `suggest` | Rank external references not yet in the vault by frequency |
+| `backfill-references` | Extract references from existing summaries |
+
+### Utilities
+
+| Command | Description |
+|---------|-------------|
+| `watch` | Watch `raw/suppliers/` and auto-ingest new files |
+| `graph [agent]` | Print the Mermaid graph for any sub-agent |
+
+## Discount analysis
+
+Drop `.xlsx` files (exported from your POS) into `raw/discounts/` and run:
+
+```bash
+lila discounts
+```
+
+Generates an interactive HTML report at `outputs/reports/discount-report.html` with:
+
+- **Metadata panel** — file count, date range, totals
+- **Hourly breakdown** — discount count and amount by hour
+- **Daily breakdown** — by day of week
+- **By waiter** — top 15 waiters by discount amount
+- **Top items** — most frequently discounted menu items
+- **Discount types** — pie chart by definition/reason
+- **Trend** — daily discount amounts over time
+- **Heatmap** — day × hour matrix
+
+Every chart has a collapsible data table underneath — click to expand the raw numbers.
 
 ## Workflow
 
-1. Drop a PDF into `raw/papers/`
-2. `kb catalog` — registers it with title, authors, keywords
-3. `kb ingest <filename>` — extracts text, generates a summary, runs fidelity check, saves to `wiki/summaries/`
-4. `kb compile-concepts` — creates standalone concept articles from cross-referenced summaries
-5. `kb synthesize <topic>` — produces a cross-source synthesis
-6. `kb lint` — catches broken links, orphans, and contradictions
+1. Drop a supplier invoice or recipe into `raw/suppliers/`
+2. `lila catalog` — registers it with title, supplier, keywords
+3. `lila ingest <filename>` — extracts text, generates an analysis, runs fidelity check, saves to `wiki/analyses/`
+4. `lila compile-ingredients` — creates standalone ingredient/concept articles from cross-referenced analyses
+5. `lila synthesize <topic>` — produces a cross-source synthesis
+6. `lila lint` — catches broken links, orphans, and contradictions
 
 ## Structure
 
 ```
-raw/          Source materials (PDFs, notes, web clips). Human-curated, never auto-edited.
-wiki/         LLM-generated summaries, concepts, connections, glossary. Never hand-edited.
-research/     Your dissertation chapters. Collaborative — you write, agents suggest updates.
-prompts/      Prompt templates that drive generation quality.
-outputs/      Generated reports, evals, slides, figures.
-agents/       The multi-agent system (LangGraph + LangChain + Pydantic).
+raw/
+  suppliers/    Source documents (invoices, specs). Human-curated, never auto-edited.
+  recipes/      Recipe files and formulations.
+  discounts/    POS discount export xlsx files for analysis.
+  notes/        Your own rough notes and ideas.
+  web/          Web-clipped articles.
+wiki/
+  analyses/     LLM-generated analyses of source documents.
+  ingredients/  Standalone concept/ingredient articles.
+  insights/     Cross-cutting themes and comparisons.
+planning/       Operations planning docs (menu strategy, cost optimization).
+prompts/        Prompt templates that drive generation quality.
+outputs/
+  reports/      Generated reports (including discount-report.html).
+  evals/        Fidelity check reports.
+  slides/       Marp slide decks.
+  figures/      Generated charts and diagrams.
+agents/         The multi-agent system (LangGraph + LangChain + Pydantic).
 ```
 
 ## Architecture
 
 A supervisor routes each command to a specialized sub-agent. Each agent is a LangGraph `StateGraph` with typed Pydantic state.
 
-The ingest agent has a fidelity retry loop: after generating a summary, it evaluates every claim against the source and fixes distortions (up to 3 attempts) before saving.
+The ingest agent has a fidelity retry loop: after generating an analysis, it evaluates every claim against the source and fixes distortions (up to 3 attempts) before saving.
+
+The discount analysis pipeline uses pandas + plotly to generate interactive HTML reports from POS export data.
 
 Provider-agnostic — swap between Anthropic, OpenAI, Google, or Mistral by changing one env var.
