@@ -7,17 +7,22 @@ from agents.models import CatalogEntry, CatalogResult, CatalogState
 from agents.sub_agents.base import BaseAgent
 
 
-EXTRACT_METADATA_PROMPT = """You are a research paper metadata extractor. Given the first pages of a PDF, extract:
+EXTRACT_METADATA_PROMPT = """You are a document metadata extractor for a pizza restaurant operations system.
+Given the first pages of a document (supplier invoice, price list, recipe card, or operations doc), extract:
 
 Return ONLY valid JSON (no markdown fencing):
 {
-  "title": "Full paper title",
-  "authors": ["LastName1", "LastName2"],
+  "title": "Document title or description",
+  "authors": ["SupplierName or Author"],
   "year": 0,
   "keywords": ["keyword1", "keyword2", "keyword3"]
 }
 
-Extract 3-5 keywords describing the paper's topic. Use lowercase."""
+Rules:
+- "title" = descriptive title (e.g., "Farina Caputo Price List Q2 2026", "Margherita Recipe Card")
+- "authors" = supplier name, vendor, or author (e.g., ["Caputo"], ["Casa Mozzarella"])
+- "year" = document year as integer
+- "keywords" = 3-5 lowercase tags describing content (e.g., "flour", "pricing", "dough", "inventory")"""
 
 
 class CatalogAgent(BaseAgent[CatalogState]):

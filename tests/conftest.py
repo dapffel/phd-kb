@@ -9,9 +9,9 @@ import pytest
 def tmp_vault(tmp_path):
     """Create a minimal vault structure for testing."""
     dirs = [
-        "raw/papers", "raw/notes", "raw/web", "raw/images",
-        "wiki/summaries", "wiki/concepts", "wiki/connections",
-        "research", "outputs/reports", "outputs/evals",
+        "raw/suppliers", "raw/recipes", "raw/notes", "raw/web", "raw/images",
+        "wiki/analyses", "wiki/ingredients", "wiki/insights",
+        "planning", "outputs/reports", "outputs/evals",
         "outputs/slides", "outputs/figures", "prompts",
     ]
     for d in dirs:

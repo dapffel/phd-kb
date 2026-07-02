@@ -43,10 +43,10 @@ def main() -> None:
     args = sys.argv[1:]
 
     if not args:
-        print("Usage: kb <command> [args]")
+        print("Usage: lila <command> [args]")
         print("Commands: init, status, catalog, catalog-update, find, ingest,")
-        print("          ingest-all, compile-concepts, synthesize, slides, eval,")
-        print("          eval-all, lint, query, update-chapter, references,")
+        print("          ingest-all, compile-ingredients, synthesize, slides,")
+        print("          eval, eval-all, lint, query, update-plan, references,")
         print("          suggest, backfill-references, watch, graph")
         sys.exit(1)
 

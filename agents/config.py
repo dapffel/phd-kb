@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     max_fidelity_attempts: int = 3
     langsmith_tracing: bool = False
     langsmith_api_key: str = ""
-    langsmith_project: str = "phd-kb"
+    langsmith_project: str = "lila"
 
     @property
     def raw_dir(self) -> Path:
@@ -22,7 +22,11 @@ class Settings(BaseSettings):
 
     @property
     def papers_dir(self) -> Path:
-        return self.raw_dir / "papers"
+        return self.raw_dir / "suppliers"
+
+    @property
+    def recipes_dir(self) -> Path:
+        return self.raw_dir / "recipes"
 
     @property
     def web_dir(self) -> Path:

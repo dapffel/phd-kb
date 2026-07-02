@@ -24,9 +24,9 @@ PROMPT_FILES = [
 
 def init_vault() -> tuple[str, bool]:
     dirs = [
-        "raw/papers", "raw/notes", "raw/web", "raw/images",
-        "wiki/summaries", "wiki/concepts", "wiki/connections",
-        "research", "outputs/reports", "outputs/evals",
+        "raw/suppliers", "raw/recipes", "raw/notes", "raw/web", "raw/images",
+        "wiki/analyses", "wiki/ingredients", "wiki/insights",
+        "planning", "outputs/reports", "outputs/evals",
         "outputs/slides", "outputs/figures", "prompts",
     ]
     for dirname in dirs:
@@ -133,15 +133,15 @@ def create_slides(vault: Vault, args: str) -> str:
 
 def update_chapter(vault: Vault, args: str) -> str:
     if not args:
-        return "Usage: update-chapter <chapter-name>"
+        return "Usage: update-plan <plan-name>"
     chapter = args if args.endswith(".md") else f"{args}.md"
-    path = settings.vault_root / "research" / chapter
+    path = settings.vault_root / "planning" / chapter
     if not path.exists():
-        matches = list((settings.vault_root / "research").glob(f"*{args}*.md"))
+        matches = list((settings.vault_root / "planning").glob(f"*{args}*.md"))
         if len(matches) == 1:
             path = matches[0]
         else:
-            return f"No chapter found for: {args}"
+            return f"No plan found for: {args}"
 
     content = path.read_text()
     links = sorted(set(re.findall(r"\[\[([^\]]+)\]\]", content)))
@@ -172,43 +172,42 @@ def _starter_files() -> dict[Path, str]:
             "---\n\n"
             "## All Sources\n\n"
         ),
-        settings.wiki_index: "---\ntitle: \"Wiki Index\"\nupdated: \n---\n\n## Summaries\n\n## Concepts\n\n## Connections\n",
+        settings.wiki_index: "---\ntitle: \"Wiki Index\"\nupdated: \n---\n\n## Analyses\n\n## Ingredients\n\n## Insights\n",
         settings.wiki_sources: "---\ntitle: \"Source Catalog\"\nupdated: \n---\n\n## Ingested Sources\n",
         settings.wiki_glossary: "---\ntitle: \"Glossary\"\nupdated: \n---\n\n## Terms\n",
         settings.vault_root / ".gitignore": (
             "# Obsidian temporary files\n.obsidian/workspace.json\n"
             ".obsidian/workspace-mobile.json\n.trash/\n\n# OS files\n.DS_Store\nThumbs.db\n\n"
-            "# Large binary files\nraw/papers/*.pdf\nraw/web/*.pdf\n\nresearch/\n"
+            "# Large binary files\nraw/suppliers/*.pdf\nraw/web/*.pdf\n\nplanning/\n"
         ),
-        settings.vault_root / "research" / "chapter-1-current-state.md": _chapter_template("Chapter 1: Current State of the Field"),
-        settings.vault_root / "research" / "chapter-2-methodology.md": _chapter_template("Chapter 2: Methodology"),
-        settings.vault_root / "research" / "chapter-3-findings.md": _chapter_template("Chapter 3: Findings"),
-        settings.vault_root / "research" / "_research-index.md": (
-            "---\ntitle: \"Research Overview\"\nupdated: \n---\n\n"
-            "## Dissertation Structure\n\n"
-            "| Chapter | Title | Status | Last Updated |\n"
-            "|---------|-------|--------|-------------|\n"
-            "| 1 | Current State of the Field | not started | — |\n"
-            "| 2 | Methodology | not started | — |\n"
-            "| 3 | Findings | not started | — |\n"
+        settings.vault_root / "planning" / "menu-strategy.md": _plan_template("Menu Strategy"),
+        settings.vault_root / "planning" / "cost-optimization.md": _plan_template("Cost Optimization"),
+        settings.vault_root / "planning" / "operations.md": _plan_template("Operations"),
+        settings.vault_root / "planning" / "_planning-index.md": (
+            "---\ntitle: \"Planning Overview\"\nupdated: \n---\n\n"
+            "## Plans\n\n"
+            "| Plan | Focus | Status | Last Updated |\n"
+            "|------|-------|--------|-------------|\n"
+            "| Menu Strategy | Pricing, items, seasonal changes | not started | — |\n"
+            "| Cost Optimization | Margins, supplier alternatives, waste | not started | — |\n"
+            "| Operations | Prep workflows, staffing, inventory | not started | — |\n"
         ),
     }
 
 
-def _chapter_template(title: str) -> str:
+def _plan_template(title: str) -> str:
     return (
         "---\n"
         f'title: "{title}"\n'
         "status: draft\n"
         "updated: \n"
         "---\n\n"
-        "## Research Question\n\n"
-        "## Current State\n\n"
-        "## Key Debates and Disagreements\n\n"
-        "## Identified Gaps\n\n"
-        "## My Position\n\n"
+        "## Goal\n\n"
+        "## Current Situation\n\n"
+        "## Key Issues\n\n"
+        "## Action Items\n\n"
         "## TODO\n"
-        "- [ ] Draft this chapter\n"
+        "- [ ] Draft this plan\n"
     )
 
 

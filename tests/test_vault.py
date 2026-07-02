@@ -52,7 +52,7 @@ class TestExtractDetection:
 
     def test_has_summary_true(self, vault):
         from agents.config import settings
-        (settings.wiki_dir / "summaries" / "test.md").write_text("summary")
+        (settings.wiki_dir / "analyses" / "test.md").write_text("summary")
         assert vault.has_summary("test.pdf") is True
 
 
@@ -65,11 +65,11 @@ class TestWikiStats:
 
     def test_counts_articles(self, vault):
         from agents.config import settings
-        (settings.wiki_dir / "summaries" / "paper-a.md").write_text(
+        (settings.wiki_dir / "analyses" / "paper-a.md").write_text(
             "---\ntitle: A\ncreated: 2024-01-01\nupdated: 2024-01-01\ntype: summary\nsources: [a]\n---\n"
             "Some words here about [[concept-x]] and [[concept-y]]."
         )
-        (settings.wiki_dir / "concepts" / "concept-x.md").write_text(
+        (settings.wiki_dir / "ingredients" / "concept-x.md").write_text(
             "---\ntitle: X\ncreated: 2024-01-01\nupdated: 2024-01-01\ntype: concept\nsources: [a]\n---\n"
             "Definition of concept-x. See [[paper-a]]."
         )
@@ -81,7 +81,7 @@ class TestWikiStats:
 
     def test_orphaned_detection(self, vault):
         from agents.config import settings
-        (settings.wiki_dir / "summaries" / "orphan.md").write_text(
+        (settings.wiki_dir / "analyses" / "orphan.md").write_text(
             "---\ntitle: O\ncreated: 2024-01-01\nupdated: 2024-01-01\ntype: summary\nsources: [o]\n---\n"
             "No links here."
         )
@@ -92,8 +92,8 @@ class TestWikiStats:
 class TestIndexRegeneration:
     def test_regenerate_wiki_index(self, vault):
         from agents.config import settings
-        (settings.wiki_dir / "summaries" / "alpha.md").write_text("---\ntitle: A\n---\n")
-        (settings.wiki_dir / "summaries" / "beta.md").write_text("---\ntitle: B\n---\n")
+        (settings.wiki_dir / "analyses" / "alpha.md").write_text("---\ntitle: A\n---\n")
+        (settings.wiki_dir / "analyses" / "beta.md").write_text("---\ntitle: B\n---\n")
 
         vault.regenerate_wiki_index()
         content = settings.wiki_index.read_text()

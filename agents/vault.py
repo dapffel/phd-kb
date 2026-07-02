@@ -128,7 +128,7 @@ class Vault:
 
     def has_summary(self, filename: str) -> bool:
         md_name = Path(filename).stem + ".md"
-        return (settings.wiki_dir / "summaries" / md_name).exists()
+        return (settings.wiki_dir / "analyses" / md_name).exists()
 
     # --- Wiki articles ---
 
@@ -151,15 +151,15 @@ class Vault:
         self.invalidate_cache(path)
 
     def list_summaries(self) -> list[Path]:
-        d = settings.wiki_dir / "summaries"
+        d = settings.wiki_dir / "analyses"
         return sorted(d.glob("*.md")) if d.exists() else []
 
     def list_concepts(self) -> list[Path]:
-        d = settings.wiki_dir / "concepts"
+        d = settings.wiki_dir / "ingredients"
         return sorted(d.glob("*.md")) if d.exists() else []
 
     def list_connections(self) -> list[Path]:
-        d = settings.wiki_dir / "connections"
+        d = settings.wiki_dir / "insights"
         return sorted(d.glob("*.md")) if d.exists() else []
 
     # --- Wiki index files ---
@@ -175,17 +175,17 @@ class Vault:
             f"updated: {_today()}",
             "---",
             "",
-            "## Summaries",
+            "## Analyses",
             "",
         ]
         for f in summaries:
             lines.append(f"- [[{f.stem}]]")
 
-        lines += ["", "## Concepts", ""]
+        lines += ["", "## Ingredients", ""]
         for f in concepts:
             lines.append(f"- [[{f.stem}]]")
 
-        lines += ["", "## Connections", ""]
+        lines += ["", "## Insights", ""]
         for f in connections:
             lines.append(f"- [[{f.stem}]]")
 
