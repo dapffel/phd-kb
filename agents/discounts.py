@@ -74,25 +74,42 @@ def load_discounts() -> pd.DataFrame:
     return df
 
 
-def _section(title: str, *charts: str) -> str:
-    cards = "\n".join(charts)
-    return f'<div class="section"><h2>{title}</h2>{cards}</div>'
+# ---------------------------------------------------------------------------
+# HTML helpers
+# ---------------------------------------------------------------------------
+
+def _section_heading(title: str) -> str:
+    return f'<h2>{title}</h2>'
 
 
-def _kpi_card(label: str, value: str) -> str:
-    return f'<div class="kpi"><div class="kpi-value">{value}</div><div class="kpi-label">{label}</div></div>'
+def _panel(*strips: str) -> str:
+    inner = "\n".join(strips)
+    return f'<div class="panel">{inner}</div>'
+
+
+def _strip(tag: str, items: list[tuple[str, str]]) -> str:
+    cells = "".join(
+        f"<div class='item'><span class='k'>{k}</span><span class='v'>{v}</span></div>"
+        for k, v in items
+    )
+    return f"<div class='strip'><span class='strip-tag'>{tag}</span><div class='items'>{cells}</div></div>"
+
+
+def _chart_card(*charts: str) -> str:
+    inner = "\n".join(charts)
+    return f'<div class="panel chart-panel">{inner}</div>'
 
 
 CHART_LAYOUT = dict(
-    font=dict(family="Rubik, sans-serif", size=13, color="#2d2d2d"),
+    font=dict(family="Nunito, sans-serif", size=13, color="#1f2937"),
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
-    margin=dict(l=16, r=16, t=48, b=40),
+    margin=dict(l=16, r=16, t=48, b=48),
     legend=dict(orientation="h", y=-0.18, font=dict(size=12)),
-    title_font=dict(size=15, color="#1a1a1a"),
+    title_font=dict(size=15, color="#1f2937", weight=700),
 )
 
-COLORS = ["#3d3d3d", "#c4704b", "#7a9e7e", "#b8a56a", "#8b7bb5", "#5f9ea0"]
+COLORS = ["#1f2937", "#d97706", "#16a34a", "#6366f1", "#dc2626", "#94a3b8"]
 
 
 def _chart_html(fig: go.Figure) -> str:
@@ -100,42 +117,54 @@ def _chart_html(fig: go.Figure) -> str:
     return fig.to_html(full_html=False, include_plotlyjs=False)
 
 
-def build_report(df: pd.DataFrame) -> str:
-    sections = []
+# ---------------------------------------------------------------------------
+# Report builder
+# ---------------------------------------------------------------------------
 
-    # --- KPIs ---
+def build_report(df: pd.DataFrame) -> str:
+    sections: list[str] = []
+
+    # --- Compute metadata ---
     total_discounts = len(df)
     total_amount = df["discount_amount"].sum() if "discount_amount" in df.columns else 0
     avg_amount = df["discount_amount"].mean() if "discount_amount" in df.columns else 0
     unique_items = df["item_name"].nunique() if "item_name" in df.columns else 0
+    unique_waiters = df["waiter"].nunique() if "waiter" in df.columns else 0
+    file_count = df["_source"].nunique()
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+
     date_range = ""
     if "opened_at" in df.columns:
         mn, mx = df["opened_at"].min(), df["opened_at"].max()
         if pd.notna(mn) and pd.notna(mx):
             date_range = f"{mn.strftime('%d/%m/%Y')} — {mx.strftime('%d/%m/%Y')}"
 
-    file_count = df["_source"].nunique()
-    now = datetime.now().strftime("%d/%m/%Y %H:%M")
-
-    meta_items = [f"<span>{file_count} קבצים</span>"]
+    # --- Metadata panel ---
+    sections.append(_section_heading("נתוני הרצה"))
+    data_items: list[tuple[str, str]] = [("קבצים", str(file_count))]
     if date_range:
-        meta_items.append(f"<span>{date_range}</span>")
-    meta_items.append(f"<span>נוצר {now}</span>")
-    meta_html = (
-        '<div class="meta-stripe">'
-        + '<div class="meta-inner">' + " · ".join(meta_items) + "</div>"
-        + "</div>"
-    )
+        data_items.append(("טווח תאריכים", date_range))
+    data_items.append(("נוצר", now))
 
-    kpis = (
-        '<div class="kpi-row">'
-        + _kpi_card("סה״כ הנחות", f"{total_discounts:,}")
-        + _kpi_card("סכום כולל", f"₪{total_amount:,.0f}")
-        + _kpi_card("ממוצע להנחה", f"₪{avg_amount:,.0f}")
-        + _kpi_card("פריטים ייחודיים", f"{unique_items:,}")
-        + "</div>"
+    sections.append(_panel(
+        _strip("נתונים", data_items),
+        _strip("סיכום", [
+            ("הנחות", f"{total_discounts:,}"),
+            ("סכום כולל", f"₪{total_amount:,.0f}"),
+            ("ממוצע להנחה", f"₪{avg_amount:,.0f}"),
+            ("פריטים", f"{unique_items:,}"),
+            ("מלצרים", f"{unique_waiters:,}"),
+        ]),
+    ))
+
+    # --- Overall ---
+    sections.append(_section_heading("סה״כ"))
+    sections.append(
+        f'<div class="overall">'
+        f'<span class="pct">₪{total_amount:,.0f}</span>'
+        f'<span class="meta2">{total_discounts:,} הנחות · ממוצע ₪{avg_amount:,.0f}</span>'
+        f'</div>'
     )
-    sections.append(kpis)
 
     # --- By hour ---
     if "hour" in df.columns:
@@ -157,7 +186,8 @@ def build_report(df: pd.DataFrame) -> str:
         fig.update_layout(title="הנחות לפי שעה", xaxis_title="שעה", height=400)
         fig.update_yaxes(title_text="מספר", secondary_y=False)
         fig.update_yaxes(title_text="₪", secondary_y=True)
-        sections.append(_section("ניתוח לפי שעה", _chart_html(fig)))
+        sections.append(_section_heading("ניתוח לפי שעה"))
+        sections.append(_chart_card(_chart_html(fig)))
 
     # --- By day of week ---
     if "day_of_week" in df.columns:
@@ -172,7 +202,8 @@ def build_report(df: pd.DataFrame) -> str:
         fig.add_trace(go.Bar(x=daily["day_name"], y=daily["count"], name="מספר הנחות", marker_color=COLORS[0]))
         fig.add_trace(go.Bar(x=daily["day_name"], y=daily["total"], name="סכום (₪)", marker_color=COLORS[1]))
         fig.update_layout(title="הנחות לפי יום בשבוע", barmode="group", height=400)
-        sections.append(_section("ניתוח לפי יום", _chart_html(fig)))
+        sections.append(_section_heading("ניתוח לפי יום"))
+        sections.append(_chart_card(_chart_html(fig)))
 
     # --- By waiter ---
     if "waiter" in df.columns:
@@ -188,7 +219,8 @@ def build_report(df: pd.DataFrame) -> str:
                              textposition="auto"))
         fig.update_layout(title="הנחות לפי מלצר (טופ 15)", height=max(350, len(waiter) * 30),
                           xaxis_title="₪")
-        sections.append(_section("ניתוח לפי מלצר", _chart_html(fig)))
+        sections.append(_section_heading("ניתוח לפי מלצר"))
+        sections.append(_chart_card(_chart_html(fig)))
 
     # --- Top items ---
     if "item_name" in df.columns:
@@ -202,7 +234,8 @@ def build_report(df: pd.DataFrame) -> str:
                              marker_color=COLORS[0]))
         fig.update_layout(title="פריטים שניתנו הכי הרבה הנחות (טופ 20)", height=450,
                           xaxis_tickangle=-45)
-        sections.append(_section("פריטים מובילים", _chart_html(fig)))
+        sections.append(_section_heading("פריטים מובילים"))
+        sections.append(_chart_card(_chart_html(fig)))
 
     # --- By discount type/definition ---
     if "definition" in df.columns:
@@ -214,7 +247,8 @@ def build_report(df: pd.DataFrame) -> str:
         fig = px.pie(by_def, values="total", names="definition", title="סכום הנחות לפי סוג",
                      color_discrete_sequence=COLORS)
         fig.update_layout(height=400)
-        sections.append(_section("סוגי הנחות", _chart_html(fig)))
+        sections.append(_section_heading("סוגי הנחות"))
+        sections.append(_chart_card(_chart_html(fig)))
 
     # --- Trend over time ---
     if "date" in df.columns:
@@ -238,7 +272,8 @@ def build_report(df: pd.DataFrame) -> str:
         fig.update_layout(title="מגמה לאורך זמן", height=400)
         fig.update_yaxes(title_text="מספר", secondary_y=False)
         fig.update_yaxes(title_text="₪", secondary_y=True)
-        sections.append(_section("מגמה לאורך זמן", _chart_html(fig)))
+        sections.append(_section_heading("מגמה לאורך זמן"))
+        sections.append(_chart_card(_chart_html(fig)))
 
     # --- Heatmap: day x hour ---
     if "hour" in df.columns and "day_of_week" in df.columns:
@@ -253,17 +288,18 @@ def build_report(df: pd.DataFrame) -> str:
             z=heat_pivot.values,
             x=[str(h) for h in heat_pivot.columns],
             y=y_labels,
-            colorscale=[[0, "#f5f5f0"], [0.5, "#c4704b"], [1, "#3d3d3d"]],
+            colorscale=[[0, "#f4f6f9"], [0.5, "#d97706"], [1, "#1f2937"]],
             colorbar_title="₪",
         ))
         fig.update_layout(title="מפת חום: סכום הנחות לפי יום ושעה", height=350,
                           xaxis_title="שעה", yaxis_title="יום")
-        sections.append(_section("מפת חום", _chart_html(fig)))
+        sections.append(_section_heading("מפת חום"))
+        sections.append(_chart_card(_chart_html(fig)))
 
     # --- Assemble HTML ---
     content = "\n".join(sections)
 
-    return f"""<!DOCTYPE html>
+    return f"""<!doctype html>
 <html dir="rtl" lang="he">
 <head>
 <meta charset="utf-8">
@@ -271,132 +307,54 @@ def build_report(df: pd.DataFrame) -> str:
 <title>דוח הנחות — Lila</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <style>
-  *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+:root {{ --ink: #1f2937; --muted: #94a3b8; --line: #e9edf2; --bg: #f4f6f9; --amber: #d97706; }}
+* {{ box-sizing: border-box; }}
+body {{ font-family: 'Nunito', -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+       margin: 0; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }}
 
-  body {{
-    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 400;
-    line-height: 1.6;
-    background: #f5f5f0;
-    color: #2d2d2d;
-    -webkit-font-smoothing: antialiased;
-  }}
+header {{ padding: 30px 40px 10px; max-width: 1080px; margin: 0 auto; }}
+header h1 {{ margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.01em; }}
+header .sub {{ color: var(--muted); font-size: 13px; font-weight: 600; margin-top: 2px; }}
 
-  .meta-stripe {{
-    background: #2d2d2d;
-    color: #e8e8e4;
-    padding: 14px 0;
-    font-size: 0.85em;
-    font-weight: 300;
-    letter-spacing: 0.02em;
-  }}
-  .meta-inner {{
-    max-width: 1060px;
-    margin: 0 auto;
-    padding: 0 32px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-  }}
-  .meta-stripe span {{ opacity: 0.85; }}
+main {{ padding: 8px 40px 64px; max-width: 1080px; margin: 0 auto; }}
 
-  .container {{
-    max-width: 1060px;
-    margin: 0 auto;
-    padding: 48px 32px 60px;
-  }}
+h2 {{ font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+     color: var(--muted); font-weight: 800; margin: 30px 0 12px; }}
 
-  h1 {{
-    font-size: 1.9em;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 36px;
-    letter-spacing: -0.01em;
-  }}
+.panel {{ background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }}
+.chart-panel {{ padding: 20px; margin-bottom: 8px; }}
+.strip {{ display: flex; align-items: center; gap: 18px; padding: 14px 20px; }}
+.strip + .strip {{ border-top: 1px solid var(--line); }}
+.strip-tag {{ font-size: 11px; font-weight: 800; text-transform: uppercase;
+             letter-spacing: .06em; color: #b3bcc8; min-width: 64px; }}
+.items {{ display: flex; flex-wrap: wrap; gap: 28px; }}
+.item {{ display: flex; flex-direction: column; gap: 1px; }}
+.item .k {{ font-size: 10px; text-transform: uppercase; letter-spacing: .05em;
+           color: var(--muted); font-weight: 700; }}
+.item .v {{ font-size: 14px; font-weight: 700; }}
 
-  h2 {{
-    font-size: 1.1em;
-    font-weight: 500;
-    color: #1a1a1a;
-    letter-spacing: -0.005em;
-  }}
+.overall {{ display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; }}
+.overall .pct {{ font-size: 44px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }}
+.overall .meta2 {{ color: var(--muted); font-weight: 700; font-size: 14px; }}
 
-  .kpi-row {{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-bottom: 40px;
-  }}
+.footer {{ text-align: center; color: var(--muted); font-size: 11px; font-weight: 600;
+          margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }}
 
-  .kpi {{
-    background: #fff;
-    border: 1px solid #e8e8e4;
-    border-radius: 12px;
-    padding: 24px 20px;
-    text-align: center;
-    transition: box-shadow 0.2s ease;
-  }}
-  .kpi:hover {{ box-shadow: 0 4px 20px rgba(0,0,0,0.06); }}
-
-  .kpi-value {{
-    font-size: 2.2em;
-    font-weight: 600;
-    color: #1a1a1a;
-    line-height: 1.1;
-  }}
-
-  .kpi-label {{
-    font-size: 0.82em;
-    font-weight: 400;
-    color: #888;
-    margin-top: 8px;
-    letter-spacing: 0.01em;
-  }}
-
-  .section {{
-    background: #fff;
-    border: 1px solid #e8e8e4;
-    border-radius: 12px;
-    padding: 28px 24px;
-    margin-bottom: 24px;
-    transition: box-shadow 0.2s ease;
-  }}
-  .section:hover {{ box-shadow: 0 4px 20px rgba(0,0,0,0.06); }}
-
-  .section h2 {{
-    border-bottom: 1px solid #f0f0ec;
-    padding-bottom: 12px;
-    margin-bottom: 20px;
-  }}
-
-  .footer {{
-    text-align: center;
-    color: #b0b0a8;
-    font-size: 0.78em;
-    font-weight: 300;
-    margin-top: 48px;
-    padding-top: 24px;
-    border-top: 1px solid #e8e8e4;
-    letter-spacing: 0.02em;
-  }}
-
-  .js-plotly-plot .plotly .modebar {{
-    right: unset !important;
-    left: 0 !important;
-  }}
+.js-plotly-plot .plotly .modebar {{ right: unset !important; left: 0 !important; }}
 </style>
 </head>
 <body>
-{meta_html}
-<div class="container">
+<header>
 <h1>דוח ניתוח הנחות</h1>
+<div class="sub">Lila Analytics</div>
+</header>
+<main>
 {content}
-<div class="footer">Lila Analytics</div>
-</div>
+<div class="footer">נוצר {now} · Lila</div>
+</main>
 </body>
 </html>"""
 
