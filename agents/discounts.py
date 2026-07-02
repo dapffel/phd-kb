@@ -1,5 +1,4 @@
 from datetime import datetime
-from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -84,7 +83,20 @@ def _kpi_card(label: str, value: str) -> str:
     return f'<div class="kpi"><div class="kpi-value">{value}</div><div class="kpi-label">{label}</div></div>'
 
 
+CHART_LAYOUT = dict(
+    font=dict(family="Rubik, sans-serif", size=13, color="#2d2d2d"),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=16, r=16, t=48, b=40),
+    legend=dict(orientation="h", y=-0.18, font=dict(size=12)),
+    title_font=dict(size=15, color="#1a1a1a"),
+)
+
+COLORS = ["#3d3d3d", "#c4704b", "#7a9e7e", "#b8a56a", "#8b7bb5", "#5f9ea0"]
+
+
 def _chart_html(fig: go.Figure) -> str:
+    fig.update_layout(**CHART_LAYOUT)
     return fig.to_html(full_html=False, include_plotlyjs=False)
 
 
@@ -102,6 +114,19 @@ def build_report(df: pd.DataFrame) -> str:
         if pd.notna(mn) and pd.notna(mx):
             date_range = f"{mn.strftime('%d/%m/%Y')} — {mx.strftime('%d/%m/%Y')}"
 
+    file_count = df["_source"].nunique()
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    meta_items = [f"<span>{file_count} קבצים</span>"]
+    if date_range:
+        meta_items.append(f"<span>{date_range}</span>")
+    meta_items.append(f"<span>נוצר {now}</span>")
+    meta_html = (
+        '<div class="meta-stripe">'
+        + '<div class="meta-inner">' + " · ".join(meta_items) + "</div>"
+        + "</div>"
+    )
+
     kpis = (
         '<div class="kpi-row">'
         + _kpi_card("סה״כ הנחות", f"{total_discounts:,}")
@@ -110,8 +135,6 @@ def build_report(df: pd.DataFrame) -> str:
         + _kpi_card("פריטים ייחודיים", f"{unique_items:,}")
         + "</div>"
     )
-    if date_range:
-        kpis += f'<p class="date-range">{date_range}</p>'
     sections.append(kpis)
 
     # --- By hour ---
@@ -123,16 +146,15 @@ def build_report(df: pd.DataFrame) -> str:
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(
-            go.Bar(x=hourly["hour"], y=hourly["count"], name="מספר הנחות", marker_color="#4a90d9"),
+            go.Bar(x=hourly["hour"], y=hourly["count"], name="מספר הנחות", marker_color=COLORS[0]),
             secondary_y=False,
         )
         fig.add_trace(
             go.Scatter(x=hourly["hour"], y=hourly["total"], name="סכום (₪)", mode="lines+markers",
-                       line=dict(color="#e8913a", width=2)),
+                       line=dict(color=COLORS[1], width=2)),
             secondary_y=True,
         )
-        fig.update_layout(title="הנחות לפי שעה", xaxis_title="שעה", height=400,
-                          legend=dict(orientation="h", y=-0.15))
+        fig.update_layout(title="הנחות לפי שעה", xaxis_title="שעה", height=400)
         fig.update_yaxes(title_text="מספר", secondary_y=False)
         fig.update_yaxes(title_text="₪", secondary_y=True)
         sections.append(_section("ניתוח לפי שעה", _chart_html(fig)))
@@ -147,10 +169,9 @@ def build_report(df: pd.DataFrame) -> str:
         daily["day_name"] = daily["day_of_week"].map(DAY_NAMES_HE)
 
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=daily["day_name"], y=daily["count"], name="מספר הנחות", marker_color="#4a90d9"))
-        fig.add_trace(go.Bar(x=daily["day_name"], y=daily["total"], name="סכום (₪)", marker_color="#e8913a"))
-        fig.update_layout(title="הנחות לפי יום בשבוע", barmode="group", height=400,
-                          legend=dict(orientation="h", y=-0.15))
+        fig.add_trace(go.Bar(x=daily["day_name"], y=daily["count"], name="מספר הנחות", marker_color=COLORS[0]))
+        fig.add_trace(go.Bar(x=daily["day_name"], y=daily["total"], name="סכום (₪)", marker_color=COLORS[1]))
+        fig.update_layout(title="הנחות לפי יום בשבוע", barmode="group", height=400)
         sections.append(_section("ניתוח לפי יום", _chart_html(fig)))
 
     # --- By waiter ---
@@ -162,7 +183,7 @@ def build_report(df: pd.DataFrame) -> str:
 
         fig = go.Figure()
         fig.add_trace(go.Bar(x=waiter["total"], y=waiter["waiter"], orientation="h",
-                             name="סכום (₪)", marker_color="#4a90d9",
+                             name="סכום (₪)", marker_color=COLORS[0],
                              text=waiter["count"].apply(lambda x: f"{x} הנחות"),
                              textposition="auto"))
         fig.update_layout(title="הנחות לפי מלצר (טופ 15)", height=max(350, len(waiter) * 30),
@@ -178,7 +199,7 @@ def build_report(df: pd.DataFrame) -> str:
 
         fig = go.Figure()
         fig.add_trace(go.Bar(x=items["item_name"], y=items["count"], name="כמות",
-                             marker_color="#4a90d9"))
+                             marker_color=COLORS[0]))
         fig.update_layout(title="פריטים שניתנו הכי הרבה הנחות (טופ 20)", height=450,
                           xaxis_tickangle=-45)
         sections.append(_section("פריטים מובילים", _chart_html(fig)))
@@ -191,7 +212,7 @@ def build_report(df: pd.DataFrame) -> str:
         ).sort_values("total", ascending=False).reset_index()
 
         fig = px.pie(by_def, values="total", names="definition", title="סכום הנחות לפי סוג",
-                     color_discrete_sequence=px.colors.qualitative.Set2)
+                     color_discrete_sequence=COLORS)
         fig.update_layout(height=400)
         sections.append(_section("סוגי הנחות", _chart_html(fig)))
 
@@ -205,17 +226,16 @@ def build_report(df: pd.DataFrame) -> str:
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(
-            go.Bar(x=trend["date"], y=trend["count"], name="מספר הנחות", marker_color="#4a90d9", opacity=0.6),
+            go.Bar(x=trend["date"], y=trend["count"], name="מספר הנחות", marker_color=COLORS[0], opacity=0.6),
             secondary_y=False,
         )
         fig.add_trace(
             go.Scatter(x=trend["date"], y=trend["total"].rolling(7, min_periods=1).mean(),
                        name="ממוצע נע 7 ימים (₪)", mode="lines",
-                       line=dict(color="#e8913a", width=2)),
+                       line=dict(color=COLORS[1], width=2)),
             secondary_y=True,
         )
-        fig.update_layout(title="מגמה לאורך זמן", height=400,
-                          legend=dict(orientation="h", y=-0.15))
+        fig.update_layout(title="מגמה לאורך זמן", height=400)
         fig.update_yaxes(title_text="מספר", secondary_y=False)
         fig.update_yaxes(title_text="₪", secondary_y=True)
         sections.append(_section("מגמה לאורך זמן", _chart_html(fig)))
@@ -233,7 +253,7 @@ def build_report(df: pd.DataFrame) -> str:
             z=heat_pivot.values,
             x=[str(h) for h in heat_pivot.columns],
             y=y_labels,
-            colorscale="YlOrRd",
+            colorscale=[[0, "#f5f5f0"], [0.5, "#c4704b"], [1, "#3d3d3d"]],
             colorbar_title="₪",
         ))
         fig.update_layout(title="מפת חום: סכום הנחות לפי יום ושעה", height=350,
@@ -241,35 +261,142 @@ def build_report(df: pd.DataFrame) -> str:
         sections.append(_section("מפת חום", _chart_html(fig)))
 
     # --- Assemble HTML ---
-    body = "\n".join(sections)
-    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    content = "\n".join(sections)
 
     return f"""<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>דוח הנחות — Lila</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <style>
-  body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-         max-width: 1100px; margin: 0 auto; padding: 20px; background: #f8f9fa; color: #333; }}
-  h1 {{ color: #2c3e50; border-bottom: 3px solid #e8913a; padding-bottom: 10px; }}
-  h2 {{ color: #34495e; margin-top: 30px; }}
-  .kpi-row {{ display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0; }}
-  .kpi {{ background: white; border-radius: 10px; padding: 20px; flex: 1; min-width: 150px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }}
-  .kpi-value {{ font-size: 2em; font-weight: bold; color: #4a90d9; }}
-  .kpi-label {{ font-size: 0.9em; color: #666; margin-top: 5px; }}
-  .date-range {{ text-align: center; color: #888; font-size: 0.9em; }}
-  .section {{ background: white; border-radius: 10px; padding: 20px; margin: 20px 0;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.08); }}
-  .footer {{ text-align: center; color: #aaa; font-size: 0.8em; margin-top: 40px; }}
+  *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+
+  body {{
+    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+    background: #f5f5f0;
+    color: #2d2d2d;
+    -webkit-font-smoothing: antialiased;
+  }}
+
+  .meta-stripe {{
+    background: #2d2d2d;
+    color: #e8e8e4;
+    padding: 14px 0;
+    font-size: 0.85em;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+  }}
+  .meta-inner {{
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }}
+  .meta-stripe span {{ opacity: 0.85; }}
+
+  .container {{
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 48px 32px 60px;
+  }}
+
+  h1 {{
+    font-size: 1.9em;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 36px;
+    letter-spacing: -0.01em;
+  }}
+
+  h2 {{
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #1a1a1a;
+    letter-spacing: -0.005em;
+  }}
+
+  .kpi-row {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }}
+
+  .kpi {{
+    background: #fff;
+    border: 1px solid #e8e8e4;
+    border-radius: 12px;
+    padding: 24px 20px;
+    text-align: center;
+    transition: box-shadow 0.2s ease;
+  }}
+  .kpi:hover {{ box-shadow: 0 4px 20px rgba(0,0,0,0.06); }}
+
+  .kpi-value {{
+    font-size: 2.2em;
+    font-weight: 600;
+    color: #1a1a1a;
+    line-height: 1.1;
+  }}
+
+  .kpi-label {{
+    font-size: 0.82em;
+    font-weight: 400;
+    color: #888;
+    margin-top: 8px;
+    letter-spacing: 0.01em;
+  }}
+
+  .section {{
+    background: #fff;
+    border: 1px solid #e8e8e4;
+    border-radius: 12px;
+    padding: 28px 24px;
+    margin-bottom: 24px;
+    transition: box-shadow 0.2s ease;
+  }}
+  .section:hover {{ box-shadow: 0 4px 20px rgba(0,0,0,0.06); }}
+
+  .section h2 {{
+    border-bottom: 1px solid #f0f0ec;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }}
+
+  .footer {{
+    text-align: center;
+    color: #b0b0a8;
+    font-size: 0.78em;
+    font-weight: 300;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid #e8e8e4;
+    letter-spacing: 0.02em;
+  }}
+
+  .js-plotly-plot .plotly .modebar {{
+    right: unset !important;
+    left: 0 !important;
+  }}
 </style>
 </head>
 <body>
+{meta_html}
+<div class="container">
 <h1>דוח ניתוח הנחות</h1>
-{body}
-<div class="footer">נוצר ב-{now} | Lila Analytics</div>
+{content}
+<div class="footer">Lila Analytics</div>
+</div>
 </body>
 </html>"""
 
